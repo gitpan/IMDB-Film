@@ -36,10 +36,8 @@ use warnings;
 
 use base qw(IMDB::BaseClass);
 
-use HTML::TokeParser;
-use LWP::UserAgent;
-use Cache::FileCache;
 use Carp;
+use LWP::Simple;
 
 use Data::Dumper;
 
@@ -61,7 +59,7 @@ use fields qw(	_title
 				_full_plot
 		);
 	
-use vars qw( $VERSION %FIELDS %FILM_CERT );
+use vars qw( $VERSION %FIELDS %FILM_CERT $PLOT_URL );
 
 use constant CLASS_NAME => 'IMDB::Film';
 use constant FORCED		=> 1;
@@ -69,7 +67,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.10';
+		$VERSION = '0.11';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -77,7 +75,9 @@ BEGIN {
 						R 		=> 16, 
 						'NC-17' => 16, 
 						PG 		=> 13, 
-						'PG-13' => 13 );					
+						'PG-13' => 13 );		
+
+		$PLOT_URL = 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt';				
 }
 
 {
@@ -146,7 +146,6 @@ sub _search_film {
 	my CLASS_NAME $self = shift;
 
 	return $self->SUPER::_search_results('\/title\/tt(\d+)');
-
 }
 
 =back
@@ -177,23 +176,10 @@ sub title {
 			$title = $self->_search_film();				
 		} 
 	
-		if( !defined $self->code or $self->code eq '' ) {
-			my($id, $tag);			
-			
-			while($tag = $parser->get_tag('img')) {
-				last if defined $tag->[1]{alt} && $tag->[1]{alt} =~ /vote/i;
-			}
-			
-			$tag = $parser->get_tag('select');
-
-			$id = $tag->[1]{name};
-
-			$self->code($id);
-		} 
-	
-		(my ($ftitle, $year)) = $title =~ /(.*?)\s+\((\d{4}).*?\)/;
-		$self->{_title} = $ftitle;
-		$self->{_year} = $year;
+		$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
+															unless $self->code;
+		
+		($self->{_title},$self->{_year}) = $title =~ m!(.*?)\s+\((\d{4}).*?\)!;
 	}	
 	
 	return $self->{_title};
@@ -232,10 +218,8 @@ sub cover {
 				$cover = $img_tag->[1]{src};
 				last;
 			}
-
 			last if $img_tag->[1]{alt} =~ /^no poster/i;
 		}
-
 		$self->{_cover} = $cover;
 	}	
 
@@ -267,7 +251,7 @@ sub directors {
 			last if $text =~ /writing/i or $tag->[0] eq '/td';
 			
 			if($tag->[0] eq 'a') {
-				my ($id) = $tag->[1]{href} =~ /(\d+)/;	
+				my($id) = $tag->[1]{href} =~ /(\d+)/;	
 				push @directors, {id => $id, name => $text};
 			}			
 		}
@@ -303,7 +287,7 @@ sub writers {
 			last if $tag->[0] eq '/table';
 			
 			if($tag->[0] eq 'a') {
-				if(my ($id) = $tag->[1]{href} =~ /nm(\d+)/) {
+				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/) {
 					push @writers, {id => $id, name => $text};
 				}	
 			}		
@@ -426,7 +410,7 @@ sub rating {
 		my $tag = $parser->get_tag('b');	
 		my $text = $parser->get_trimmed_text('b', 'a');
 
-		my ($rating, $val) = $text =~ m!(\d+\.?\d+)\/.*?\((\d+\,?\d+)\s.*?\)!;
+		my($rating, $val) = $text =~ m!(\d+\.?\d+)\/.*?\((\d+\,?\d+)\s.*?\)!;
 		$val =~ s/\,// if $val;
 
 		$self->{_rating} = [$rating, $val];
@@ -452,12 +436,12 @@ sub cast {
 		my $parser = $self->_parser(FORCED);
 	
 		while($tag = $parser->get_tag('b')) {
-			last if $parser->get_text() =~ /^cast overview/i;
+			last if $parser->get_text =~ /^(cast overview|credited cast|complete credited cast)/i;
 		}
 		
 		while($tag = $parser->get_tag('a')) {
 			last if $tag->[1]{href} =~ /fullcredits/i;
-			if(defined $tag->[1]{href} && $tag->[1]{href} =~ m!/name/nm(\d+?)/!) {
+			if($tag->[1]{href} && $tag->[1]{href} =~ m!/name/nm(\d+?)/!) {
 				$person = $parser->get_text;
 				$id = $1;	
 				my $text = $parser->get_trimmed_text('a', '/tr');
@@ -613,7 +597,7 @@ sub certifications {
 		while($tag = $parser->get_tag()) {
 			
 			if($tag->[0] eq 'a' && $tag->[1]{href} =~ /certificates/i) {
-				my ($country, $range) = split /\:/, $parser->get_text;
+				my($country, $range) = split /\:/, $parser->get_text;
 				$cert_list{$country} = $range;
 			}
 
@@ -633,27 +617,32 @@ Return full movie plot.
 =cut
 sub full_plot {
 	my CLASS_NAME $self = shift;
+	unless($self->{_full_plot}) {		
+		my $url = $PLOT_URL.$self->code().'/plotsummary';
 
-	if (!defined $self->{_full_plot} or $self->{_full_plot} eq '') {
-		
-		my $url = 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt'.$self->code().'/plotsummary';
-
-		my $ua = new LWP::UserAgent();
-		$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if defined $self->_proxy();
+		#my $ua = new LWP::UserAgent();
+		#$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if defined $self->_proxy();
 
 		$self->_show_message("URL is $url ...", 'DEBUG');
+		
 
-		my $req = new HTTP::Request(GET => $url);
-		my $res = $ua->request($req);
+		#my $req = new HTTP::Request(GET => $url);
+		#my $res = $ua->request($req);
 
-		unless($res->is_success) {
-			$self->error($res->status_line());
-			$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');
+#		unless($res->is_success) {
+#			$self->error($res->status_line());
+#			$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');
+#			return;
+#		}
+				
+		#my $page = $res->content();
+		my $page = get($url);
+		unless($page) {
+			$self->error('Cannot retrieve a page!');
+			$self->_show_message('Cannot retrieve page!', 'CRITICAL');
 			return;
 		}
-				
-		my $page = $res->content();
-		
+
 		my $parser = $self->_parser(FORCED, \$page);
 		
 		my($text);
@@ -670,6 +659,7 @@ sub full_plot {
 
 	return $self->{_full_plot};
 }
+
 
 =back
 
@@ -712,7 +702,7 @@ HTML::TokeParser, IMDB::BaseClass, IMDB::Persons, IMDB::Movie
 
 =head1 AUTHOR
 
-Michael Stepanov (misha@thunderworx.com)
+Michael Stepanov (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 

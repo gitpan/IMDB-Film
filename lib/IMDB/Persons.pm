@@ -29,8 +29,6 @@ use Carp;
 
 use Data::Dumper;
 
-use vars qw($VERSION %FIELDS);
-
 use base qw(IMDB::BaseClass);
 
 use fields qw(	_name
@@ -42,16 +40,14 @@ use fields qw(	_name
 				_filmography
 	);
 
-use constant FORCED => 1;
+use vars qw($VERSION %FIELDS);
+
+use constant FORCED 	=> 1;
+use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.01';
+	$VERSION = '0.11';
 }
-
-
-use vars qw( $VERSION %FIELDS );
-
-use constant CLASS_NAME => 'IMDB::Persons';
 
 {
 	my $_objcount = 0;
@@ -61,11 +57,12 @@ use constant CLASS_NAME => 'IMDB::Persons';
 	sub _decr_objcount { --$_objcount }	
 
 	my %_defaults = ( 
+		proxy		=> '',
         host		=> 'www.imdb.com',
         query		=> 'name/nm',
         search 		=> 'find?nm=on;mx=20;q=',		
 		debug		=> 0,
-		cache		=> 1,
+		cache		=> 0,
 	);
 
 	sub _get_default_attrs { keys %_defaults }		
@@ -86,12 +83,11 @@ Initialize a new object.
 =cut
 sub _init {
 	my CLASS_NAME $self = shift;
-	my %args = @_;
+	my %args = @_;	
 
-	croak "Person IMDB ID or Name should be defined!" 
-								if !defined $args{crit} or $args{crit} eq '';									
+	croak "Person IMDB ID or Name should be defined!" if !$args{crit};									
 
-	$args{proxy} = $self->get_proxy() if !defined $args{proxy}; 	
+	$args{proxy} = $self->get_proxy() if !$args{proxy}; 	
 	$self->SUPER::_init(%args);
 	my $name = $self->name();
 	
@@ -139,7 +135,9 @@ sub name {
 			$self->_show_message("Go to search page ...", 'DEBUG');
 			$title = $self->_search_person();				
 		} 
-
+		
+		$self->retrieve_code($parser, 'pro.imdb.com/name/nm(\d+)') unless $self->code;
+		
 		$self->{'_name'} = $title;
 	}
 
@@ -290,6 +288,7 @@ sub filmography_types {
 
 sub DESTROY {
 	my $self = shift;
+	$self->_decr_objcount();
 }
 
 1;
@@ -310,7 +309,7 @@ HTML::TokeParser, IMDB::BaseClass; IMDB::Film;
 
 =head1 AUTHOR
 
-Mikhail Stepanov (misha@thunderworx.com)
+Mikhail Stepanov (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 

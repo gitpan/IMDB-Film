@@ -17,10 +17,6 @@ package IMDB::BaseClass;
 use strict;
 use warnings;
 
-use vars qw($VERSION %FIELDS $AUTOLOAD);
-
-use fields qw();
-
 use HTML::TokeParser;
 use LWP::UserAgent;
 use Cache::FileCache;
@@ -28,12 +24,13 @@ use Carp;
 
 use Data::Dumper;
 
+use vars qw($VERSION %FIELDS $AUTOLOAD);
+
 BEGIN {
-	$VERSION = '0.10';
+	$VERSION = '0.11';
 }
 
-use constant FORCED => 1;
-
+use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::BaseClass';
 
 use fields qw(	content
@@ -127,9 +124,6 @@ sub _init {
 
 	$self->_cacheObj( new Cache::FileCache( { default_expires_in => $self->_cache_exp() } ) );
 	
-	#croak "Film IMDB ID or Title should be defined!" 
-	#										if !defined $args{crit} && $args{crit} eq '';									
-	
 	$self->_content( $args{crit} );
 	$self->_parser();
 }
@@ -146,8 +140,6 @@ sub code {
 	if(@_) { $self->{_code} = shift }
 	return $self->{_code};
 }
-
-
 
 =item _proxy()
 
@@ -223,11 +215,8 @@ sub _show_message {
 
 	return if $type =~ /^debug$/i && !$self->_debug();
 	
-	if($type =~ /(debug|info|warn)/i) {
-		carp "[$type] $msg";
-	} else {
-		croak "[$type] $msg";
-	}
+	if($type =~ /(debug|info|warn)/i) { carp "[$type] $msg" } 
+	else { croak "[$type] $msg" }
 }
 
 =item _host()
@@ -309,10 +298,9 @@ sub _content {
 		my $page;
 	
 		$page = $self->_cacheObj()->get($crit) if $self->_cache();
-
 		$self->code($crit) if $crit =~ /^\d+$/;
 
-		unless (defined $page) {			
+		unless($page) {			
 			$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 		
 			my $ua = new LWP::UserAgent();
@@ -381,11 +369,10 @@ sub _search_results {
 	while( my $tag = $parser->get_tag('a') ) {
 		my $href = $tag->[1]{href};
 		if( my($id) = $href =~ /$pattern/ ) {
-			#push @matched, {id => $id, title => $parser->get_text};
 			push @matched, {id => $id, title => $parser->get_trimmed_text('a', $end_tag)};
 		}	
-	}
-
+	}	
+	
 	$self->matched(\@matched);
 	$self->_content($matched[0]->{id});
 	$self->_parser(FORCED);
@@ -405,6 +392,22 @@ sub matched {
 	my CLASS_NAME $self = shift;
 	if(@_) { $self->{matched} = shift }
 	return $self->{matched};
+}
+
+sub retrieve_code {
+	my CLASS_NAME $self = shift;
+	my $parser = shift;
+	my $pattern = shift;
+	my($id, $tag);			
+			
+	while($tag = $parser->get_tag('a')) {
+		if($tag->[1]{href} && $tag->[1]{href} =~ m!$pattern!) {
+			$self->code($1);
+			last;
+		}	
+	}	
+	
+	croak "Cannot retrieve a movie code!" unless $self->code;
 }
 
 =item error()
@@ -433,6 +436,7 @@ sub DESTROY {
 }
 
 1;
+
 __END__
 
 =head1 EXPORTS
@@ -449,7 +453,7 @@ HTML::TokeParser, IMDB::Persons; IMDB::Film;
 
 =head1 AUTHOR
 
-Mikhail Stepanov (misha@thunderworx.com)
+Mikhail Stepanov (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 

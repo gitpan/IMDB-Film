@@ -1,5 +1,17 @@
 Revision history for Perl module IMDB::Film
 
+0.11 March 04 2005 
+	- fixed a bug with retrieving a list of casts
+		in case if there are only credited casts (thanks to 
+		Steve Rushe);
+	- fixed a bug with define a proxy in the class IMDB::Persons.	
+	- fixed a bug with retrieve a list of casts if there are 
+		only complete credited cast;
+	- fixed a bug with assing a person IMDB code in case when we 
+		make a search by its name;
+	- fixed a bug with assing a movie IMDB code when movie detailed
+		page doesn't contain rating;
+
 0.10 Jan 07 2005
 	- moved all common functionality into base class;
 	- added a new class to retrieve an information about IMDB persons;
