@@ -39,10 +39,12 @@ use LWP::UserAgent;
 use Cache::FileCache;
 use Carp;
 
+use Data::Dumper;
+
 use fields qw(	_title
 				_year
 				_summary
-				_casts
+				_cast
 				_directors
 				_writers
 				_cover
@@ -77,7 +79,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.03';
+		$VERSION = '0.04';
 						
 		# Convert age gradation to the digits		
 		%FILM_CERT = ( G => 'All', R => 16, 'NC-17' => 16, PG => 13, 'PG-13' => 13 );					
@@ -93,12 +95,12 @@ BEGIN {
 	my %_defaults = ( 
 		proxy		=> $ENV{http_proxy},
 		cache		=> 0,
-		debug		=> 1,
+		debug		=> 0,
 		error		=> [],
 		cache_exp	=> '1 h',
         host		=> 'www.imdb.com',
         query		=> 'title/tt',
-        search 		=> 'Find?select=All&for=',		
+        search 		=> 'find?tt=on;mx=20;q=',		
 	);
 
 	sub _get_default_attrs { keys %_defaults }		
@@ -165,10 +167,10 @@ sub _init {
 	$self->_parser(FORCED);
 	$self->title(FORCED);
 
-	for my $prop (grep { /^_/ && !/^_title$/ } sort keys %FIELDS) {
+	for my $prop (grep { /^_/ && !/^(_title|_code)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
 		$self->$prop(FORCED);
-	}	
+	}
 }
 
 =back
@@ -234,6 +236,20 @@ sub _cache_exp {
 	my CLASS_NAME $self = shift;
 	if(@_) { $self->{cache_exp} = shift }
 	return $self->{cache_exp}
+}
+
+sub _show_message {
+	my CLASS_NAME $self = shift;
+	my $msg = shift || 'Unknown error';
+	my $type = shift || 'ERROR';
+
+	return if $type =~ /^debug$/i && !$self->_debug();
+	
+	if($type =~ /(debug|info|warn)/i) {
+		carp "[$type] $msg";
+	} else {
+		croak "[$type] $msg";
+	}
 }
 
 =item _host()
@@ -316,11 +332,11 @@ sub _content {
 	
 		$page = $self->_cacheObj()->get($crit) if $self->_cache();
 
-		$self->{_code} = $crit if $crit =~ /^\d+$/;
+		$self->code($crit) if $crit =~ /^\d+$/;
 
 		unless (defined $page) {
 			
-			print "[DEBUG] Retrieving page from internet ...\n" if $self->_debug();
+			$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 			
 			my $ua = new LWP::UserAgent();
 			$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if defined $self->_proxy();
@@ -328,21 +344,21 @@ sub _content {
 			my $url = 'http://'.$self->_host().'/'.
 						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;
 
-			print "[DEBUG] URL is $url ...\n" if $self->_debug();
+			$self->_show_message("URL is $url ...", 'DEBUG');
 
 			my $req = new HTTP::Request(GET => $url);
 			my $res = $ua->request($req);
 
 			unless($res->is_success) {
-				carp "Cannot retrieve page: ".$res->status_line();
 				$self->error($res->status_line());
-				return;
+				$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');				
 			}
 			
 			$page = $res->content();
+			
 			$self->_cacheObj()->set($crit, $page, $self->_cache_exp()) if $self->_cache();
 		} else {
-			print "[DEBUG] Retrieving page from cache ...\n" if $self->_debug();
+			$self->_show_message("Retrieving page from cache ...", 'DEBUG');
 		}
 		
 		$self->{content} = \$page;
@@ -361,11 +377,12 @@ For more information please see HTML::TokeParser documentation.
 sub _parser {	
 	my CLASS_NAME $self = shift;
 	my $forced = shift || 0;
+	my $page = shift || undef;
 
 	if($forced) {
-		my $content = $self->_content();
+		my $content = defined $page ? $page : $self->_content();
 
-		my $parser = new HTML::TokeParser($content) or croak "Cannot create HTML parser: $!!";
+		my $parser = new HTML::TokeParser($content) or croak "[CRITICAL] Cannot create HTML parser: $!!";
 		$self->{parser} = $parser;
 	}
 	
@@ -413,6 +430,8 @@ Get IMDB film code.
 sub code {
 	my CLASS_NAME $self = shift;
 
+	if(@_) { $self->{_code} = shift }
+
 	return $self->{_code};
 }
 
@@ -433,11 +452,25 @@ sub title {
 	
 		$parser->get_tag('title');
 		my $title = $parser->get_text();
-		if($title =~ /IMDb name and title search/i) {
-			print "[DEBUG] Go to search page ..." if $self->_debug();
+		if($title =~ /IMDb title search/i) {
+			$self->_show_message("Go to search page ...", 'DEBUG');
 			$title = $self->_search_film();				
 		} 
-		
+	
+		if( !defined $self->code or $self->code eq '' ) {
+			my($id, $tag);			
+			
+			while($tag = $parser->get_tag('img')) {
+				last if defined $tag->[1]{alt} && $tag->[1]{alt} =~ /vote/i;
+			}
+			
+			$tag = $parser->get_tag('select');
+
+			$id = $tag->[1]{name};
+
+			$self->code($id);
+		} 
+	
 		(my ($ftitle, $year)) = $title =~ /(.*?)\s+\((\d{4}).*?\)/;
 		$self->{_title} = $ftitle;
 		$self->{_year} = $year;
@@ -511,7 +544,7 @@ sub directors {
 
 		while ($tag = $parser->get_tag() ) {
 			my $text = $parser->get_text();
-			last if $text =~ /writing/i;
+			last if $text =~ /writing/i or $tag->[0] eq '/td';
 			
 			if($tag->[0] eq 'a') {
 				my ($id) = $tag->[1]{href} =~ /(\d+)/;	
@@ -639,6 +672,8 @@ sub plot {
 		}
 
 		$self->{_plot} = $parser->get_trimmed_text('b', 'a');
+
+		my $tag = $parser->get_tag('a');
 	}	
 
 	return $self->{_plot};
@@ -646,9 +681,15 @@ sub plot {
 
 =item rating()
 
-Retrieve film user rating:
+In scalar context returns film user rating, in array context returns 
+film rating and number of votes:
 	
-	my $rate = $film->rating();
+	my $rating = $film->rating();
+
+	or
+
+	my($rating, $vnum) = $film->rating();
+	print "RATING: $rating ($vnum votes )";
 
 =cut
 sub rating {
@@ -663,45 +704,52 @@ sub rating {
 		}
 
 		my $tag = $parser->get_tag('b');	
-		($self->{_rating}) = $parser->get_trimmed_text('b', 'a') =~ m!(\d+\.?\d+)\/!;
+		my $text = $parser->get_trimmed_text('b', 'a');
+
+		my ($rating, $val) = $text =~ m!(\d+\.?\d+)\/.*?\((\d+\,?\d+)\s.*?\)!;
+		$val =~ s/\,//;
+
+		$self->{_rating} = [$rating, $val];
 	}
 
-	return $self->{_rating};
+	return wantarray ? @{ $self->{_rating} } : $self->{_rating}[0];
 }
 
-=item casts()
+=item cast()
 
-Retrieve film casts list each element of which is hash reference -
-{ id => <ID>, name => <Name> }:
+Retrieve film cast list each element of which is hash reference -
+{ id => <ID>, name => <Full Name>, role => <Role> }:
 
-	my @casts = @{ $film->casts() };
+	my @cast = @{ $film->cast() };
 
 =cut
-sub casts {
+sub cast {
 	my CLASS_NAME $self = shift;
 	my ($forced) = shift || 0;
 
 	if($forced) {
-		my (@casts, $tag, $cast);
+		my (@cast, $tag, $person, $id, $role);
 		my $parser = $self->_parser(FORCED);
 	
 		while($tag = $parser->get_tag('b')) {
 			last if $parser->get_text() =~ /^cast overview/i;
 		}
-
+		
 		while($tag = $parser->get_tag('a')) {
+			last if $tag->[1]{href} =~ /fullcredits/i;
 			if(defined $tag->[1]{href} && $tag->[1]{href} =~ m!/name/nm(\d+?)/!) {
-				$cast = $parser->get_text;
-				push @casts, {id => $1, name => $cast};
+				$person = $parser->get_text;
+				$id = $1;	
+				my $text = $parser->get_trimmed_text('a', '/tr');
+				($role) = $text =~ /.*?\s+(.*)$/;			
+				push @cast, {id => $id, name => $person, role => $role};
 			}	
-			
-			last if $cast =~ /more/i;
 		}	
 		
-		$self->{_casts} = \@casts;
+		$self->{_cast} = \@cast;
 	}
 
-	return $self->{_casts};
+	return $self->{_cast};
 }
 
 =item duration()
@@ -857,6 +905,8 @@ sub certifications {
 
 	return $self->{_certifications};
 }
+
+
 
 =item matched()
 

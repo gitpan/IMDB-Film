@@ -1,5 +1,11 @@
 Revision history for Perl module IMDB::Film
 
+0.04 Sep 09 2004
+	- added roles to the retrieving data about cast;
+	- added possibility to retrieve number of votes;
+	- fixed a bug with retrieving directors for movie
+		which doesn't contains writers info.
+
 0.03 Jul 31 2004
 	- fixed bug with retrieving film information by its title;
 	- corrected class documentation;
