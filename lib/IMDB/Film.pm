@@ -8,17 +8,17 @@ IMDB::Film 0.01
 
 =head1 SYNOPSIS
 
-use IMDB;
+	use IMDB;
 
-my $imdbObj = new IMDB::Film(crit => 227445);
+	my $imdbObj = new IMDB::Film(crit => 227445);
 
-or
+	or
 
-my $imdbObj = new IMDB::Film(crit => 'Troy');
+	my $imdbObj = new IMDB::Film(crit => 'Troy');
 
-print "Title: ".$imdbObj->title()."\n";
-print "Year: ".$imdbObj->year()."\n";
-print "Plot Symmary: ".$imdbObj->plot()."\n";
+	print "Title: ".$imdbObj->title()."\n";
+	print "Year: ".$imdbObj->year()."\n";
+	print "Plot Symmary: ".$imdbObj->plot()."\n";
 
 =head1 DESCRIPTION
 
@@ -77,7 +77,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.02';
+		$VERSION = '0.03';
 						
 		# Convert age gradation to the digits		
 		%FILM_CERT = ( G => 'All', R => 16, 'NC-17' => 16, PG => 13, 'PG-13' => 13 );					
@@ -98,7 +98,7 @@ BEGIN {
 		cache_exp	=> '1 h',
         host		=> 'www.imdb.com',
         query		=> 'title/tt',
-        search 		=> 'Find?select=Titles&for=',		
+        search 		=> 'Find?select=All&for=',		
 	);
 
 	sub _get_default_attrs { keys %_defaults }		
@@ -163,8 +163,9 @@ sub _init {
 	
 	$self->_content( $args{crit} );
 	$self->_parser(FORCED);
+	$self->title(FORCED);
 
-	for my $prop (grep { /^_/ } sort keys %FIELDS) {
+	for my $prop (grep { /^_/ && !/^_title$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
 		$self->$prop(FORCED);
 	}	
@@ -271,7 +272,7 @@ sub _query {
 Store search string to find film by its title. You can define
 different value for that:
 
-	C<my $imdb = new IMDB::Film(code => 111111, seach => 'some significant string');>
+	my $imdb = new IMDB::Film(code => 111111, seach => 'some significant string');
 
 Default value is 'Find?select=Titles&for='.
 
@@ -389,7 +390,7 @@ sub _search_film {
 		}	
 	}
 
-	$self->_matched(\@matched);
+	$self->matched(\@matched);
 	$self->_content($matched[0]->{id});
 	$self->_parser(FORCED);
 
@@ -406,7 +407,7 @@ sub _search_film {
 
 Get IMDB film code.
 
-	C<my $code = $film->code();>
+	my $code = $film->code();
 
 =cut
 sub code {

@@ -11,6 +11,5 @@ WriteMakefile(
 					}, 
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  	=> 'lib/IMDB/Film.pm', 
-       AUTHOR         	=> 'Michael <misha@localdomain>') : ()),
-		#test => { TESTS	=> 'test.pl' },	   
+       AUTHOR         	=> 'Michael Stepanov <misha@thunderworx.com>') : ()),
 );

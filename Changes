@@ -1,5 +1,9 @@
 Revision history for Perl module IMDB::Film
 
+0.03 Jul 31 2004
+	- fixed bug with retrieving film information by its title;
+	- corrected class documentation;
+
 0.02 Jul 28 2004
 	- fixed class documentation;	
 
