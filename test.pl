@@ -4,7 +4,7 @@
 #
 use strict;
 use warnings;
-use Test::More tests => 31;
+use Test::More tests => 33;
 use ExtUtils::MakeMaker qw(prompt);
 
 use Data::Dumper;
@@ -14,10 +14,10 @@ my %film_info = (
 	title   		=> 'Troy',
 	year    		=> '2004',
 	genres			=> [qw(Action Drama War Adventure Romance)],
-	country 		=> [qw(USA)],
+	country 		=> [qw(USA Malta UK)],
 	language		=> [qw(English)],
 	plot			=> qq{An adaptation of Homer's great epic, the film follows the assault on Troy by the united Greek forces and chronicles the fates of the men involved.},								
-	cover			=> qq{http://ia.imdb.com/media/imdb/01/I/54/16/28m.jpg},
+	cover			=> qq{http://ia.imdb.com/media/imdb/01/I/21/65/48m.jpg},
 	cast			=> [{ 	id => '0002103', name => 'Julian Glover', role => 'Triopas'},	
 						{	id => '0004051', name => 'Brian Cox', role => 'Agamemnon'},	
 						{	id => '0428923', name => 'Nathan Jones', role => 'Boagrius'},	
@@ -40,13 +40,14 @@ my %film_info = (
 						{id => '1125275', name => 'David Benioff'}],
 );
 
+my $full_plot = qq{In the year 1193 B.C., Paris, a prince of Troy woos Helen, Queen of Sparta, away from her husband, Menelaus, setting the kingdoms of Mycenae Greece at war with Troy. The Greeks sail to Troy and lay siege. Achilles was the greatest hero among the Greeks, while Hector, the eldest son of Priam, King of Troy, embodied the hopes of the people of his city.};
+
 require_ok('IMDB::Film');
 
 my $online_test = prompt("\nDo you want to connect to IMDB?", "Y");
 
 SKIP: {
 	skip "online test!", 30 if $online_test =~ /^(n|q)/i;
-
 
 	my $proxy = $ENV{http_proxy} ? $ENV{http_proxy} : 'no';
 	$proxy = prompt("\nUse proxy?", "$proxy");
@@ -59,23 +60,15 @@ SKIP: {
 	$pars{cache} = 0;
 	$pars{debug} = 0;
 	my $film = new IMDB::Film(%pars);
-
-	isa_ok($film, 'IMDB::Film');
-	
+	isa_ok($film, 'IMDB::Film');	
 	compare_props($film);	
-	
-	#print "Test search film by title [$film_info{title}] ...\n";
 
 	$pars{crit} = $film_info{title};
-
 	$film = new IMDB::Film(%pars);
-
 	compare_props($film);
 	
 	$pars{crit} = 'Con Air';
-
-	$film = new IMDB::Film(%pars);
-	
+	$film = new IMDB::Film(%pars);	
 	is($film->code, '0118880', 'search code')
 };
 
@@ -90,6 +83,10 @@ sub compare_props {
 			is($film->$key(), $val, $key);
 		}
 	}
+	my $f_plot = $film->full_plot();
+	$f_plot =~ s/\n/ /m;
+	$full_plot =~ s/\n/ /m;
+	is($f_plot, $full_plot, 'full plot');
 
 	like($film->rating(), qr/\d+\.?\d+/, 'rating (scalar context)');
 	my($rating, $val) = $film->rating();

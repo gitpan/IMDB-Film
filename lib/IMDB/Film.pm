@@ -55,6 +55,7 @@ use fields qw(	_title
 				_genres
 				_tagline
 				_plot
+				_full_plot
 				_certifications
 				_duration
 				content
@@ -79,7 +80,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.04';
+		$VERSION = '0.05';
 						
 		# Convert age gradation to the digits		
 		%FILM_CERT = ( G => 'All', R => 16, 'NC-17' => 16, PG => 13, 'PG-13' => 13 );					
@@ -403,7 +404,7 @@ sub _search_film {
 	while(my $tag = $parser->get_tag('a')) {
 		my $href = $tag->[1]{href};
 		if (my ($id) = $href =~ /\/title\/tt(\d+)/) {
-			push @matched, {id => $id, title => $parser->get_text};
+			push @matched, {id => $id, title => $parser->get_trimmed_text('a', '/li')};
 		}	
 	}
 
@@ -470,8 +471,8 @@ sub title {
 
 			$self->code($id);
 		} 
-	
-		(my ($ftitle, $year)) = $title =~ /(.*?)\s+\((\d{4}).*?\)/;
+		
+		my($ftitle, $year) = $title =~ /(.*?)\s+\((\d{4}).*\)/;
 		$self->{_title} = $ftitle;
 		$self->{_year} = $year;
 	}	
@@ -934,6 +935,51 @@ sub error {
 	my CLASS_NAME $self = shift;
 	if(@_) { push @{ $self->{error} }, shift() }
 	return join("\n", @{ $self->{error} });
+}
+
+=item full_plot
+
+Return full movie plot. If there are more than one it retrieves the first. 
+
+=cut
+sub full_plot {
+	my CLASS_NAME $self = shift;
+
+	if (!defined $self->{_full_plot} or $self->{_full_plot} eq '') {
+		
+		my $url = 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt'.$self->code().'/plotsummary';
+
+		my $ua = new LWP::UserAgent();
+		$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if defined $self->_proxy();
+
+		$self->_show_message("URL is $url ...", 'DEBUG');
+
+		my $req = new HTTP::Request(GET => $url);
+		my $res = $ua->request($req);
+
+		unless($res->is_success) {
+			$self->error($res->status_line());
+			$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');
+			return;
+		}
+				
+		my $page = $res->content();
+		
+		my $parser = $self->_parser(FORCED, \$page);
+		
+		my($text);
+		while(my $tag = $parser->get_tag('p')) {
+			if(defined $tag->[1]{class} && $tag->[1]{class} =~ /plotpar/i) {
+				$text = $parser->get_trimmed_text();
+				last;
+			}	
+		}
+
+		$self->{_full_plot} = $text;
+	
+	}
+
+	return $self->{_full_plot};
 }
 
 

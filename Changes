@@ -1,5 +1,12 @@
 Revision history for Perl module IMDB::Film
 
+0.05 Dec 28 2004
+	- added a new method - full_plot to retrieve
+		a full novie plot;
+	- fixed a bug with retrieve a title and production
+		year of movie in case of search by movie title;
+	- fixed bugs with test.	
+
 0.04 Sep 09 2004
 	- added roles to the retrieving data about cast;
 	- added possibility to retrieve number of votes;
