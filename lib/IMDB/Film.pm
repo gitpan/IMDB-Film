@@ -67,7 +67,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.11';
+		$VERSION = '0.12';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file

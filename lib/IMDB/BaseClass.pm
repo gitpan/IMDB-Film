@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.11';
+	$VERSION = '0.12';
 }
 
 use constant FORCED 	=> 1;
@@ -116,6 +116,8 @@ Initialize object.
 sub _init {
 	my CLASS_NAME $self = shift;
 	my %args = @_;
+
+	no warnings 'deprecated';
 
 	for my $prop ( $self->_get_default_attrs ) {		
 		$self->{$prop} = defined $args{$prop} ? 
@@ -304,12 +306,12 @@ sub _content {
 			$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 		
 			my $ua = new LWP::UserAgent();
-			$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if defined $self->_proxy();
+			$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if $self->_proxy();
 
 			my $url = 'http://'.$self->_host().'/'.
 						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;
 
-			$self->_show_message("URL is [$url] and proxy is [".$self->_proxy()."] ...", 'DEBUG');
+			$self->_show_message("URL is [$url]...", 'DEBUG');
 
 			my $req = new HTTP::Request(GET => $url);
 			my $res = $ua->request($req);

@@ -1,5 +1,10 @@
 Revision history for Perl module IMDB::Film
 
+0.12 March 07 2005
+	- fixed a bug with retrieving information about movie
+		persons in case no proxy server;
+	- added an suppression of pseudo-hash warnings.	
+
 0.11 March 04 2005 
 	- fixed a bug with retrieving a list of casts
 		in case if there are only credited casts (thanks to 

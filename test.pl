@@ -116,7 +116,7 @@ SKIP: {
 	my $film = new IMDB::Film(%pars);	
 	is($film->code, '0118880', 'search code');
 
-	print "\nTesttin search a movie without rating ...\n";
+	print "\nTestin search a movie without rating ...\n";
 	$pars{crit} = 'jonny zer';
 	$film = new IMDB::Film(%pars);
 	is($film->code, '0412158', 'search code');
