@@ -1,0 +1,16 @@
+use ExtUtils::MakeMaker;
+
+WriteMakefile(
+    NAME              	=> 'IMDB::Film',
+    VERSION_FROM      	=> 'lib/IMDB/Film.pm', 
+	PREREQ_PM         	=> {
+							HTML::TokeParser 	=> 2.28,
+							LWP::UserAgent		=> 2.024,
+							Cache::Cache		=> 1.02, 
+							Carp				=> 0,
+					}, 
+    ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
+      (ABSTRACT_FROM  	=> 'lib/IMDB/Film.pm', 
+       AUTHOR         	=> 'Michael <misha@localdomain>') : ()),
+		#test => { TESTS	=> 'test.pl' },	   
+);
