@@ -1,9 +1,12 @@
-MANIFEST
-LICENSE
-README
-Todo
-Changes
+ChangeLog
+lib/IMDB/BaseClass.pm
 lib/IMDB/Film.pm
+lib/IMDB/Persons.pm
+LICENSE
 Makefile.PL
+MANIFEST
+MANIFEST.SKIP
+META.yml			Module meta-data (added by MakeMaker)
+README
 test.pl
-META.yml                                 Module meta-data (added by MakeMaker)
+Todo

@@ -4,11 +4,11 @@ WriteMakefile(
     NAME              	=> 'IMDB::Film',
     VERSION_FROM      	=> 'lib/IMDB/Film.pm', 
 	PREREQ_PM         	=> {
-							'HTML::TokeParser' 	=> 2.28,
-							'LWP::UserAgent'	=> 2.024,
-							'Cache::Cache'		=> 1.02, 
-							'Carp'				=> 0,
-							'Error'				=> 0,
+							HTML::TokeParser 	=> 2.28,
+							LWP::UserAgent		=> 2.024,
+							Cache::FileCache	=> 0, 
+							Carp				=> 0,
+							Error				=> 0,
 					}, 
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  	=> 'lib/IMDB/Film.pm', 

@@ -4,7 +4,7 @@
 #
 use strict;
 use warnings;
-use Test::More tests => 33;
+use Test::More tests => 47;
 use ExtUtils::MakeMaker qw(prompt);
 
 use Data::Dumper;
@@ -42,34 +42,54 @@ my %film_info = (
 
 my $full_plot = qq{In the year 1193 B.C., Paris, a prince of Troy woos Helen, Queen of Sparta, away from her husband, Menelaus, setting the kingdoms of Mycenae Greece at war with Troy. The Greeks sail to Troy and lay siege. Achilles was the greatest hero among the Greeks, while Hector, the eldest son of Priam, King of Troy, embodied the hopes of the people of his city.};
 
-require_ok('IMDB::Film');
+my %person_info = (
+	code			=> '0000129',
+	name			=> qq{Tom Cruise},
+	mini_bio		=> qq{In 1976, if you had told 14 year old Franciscan seminary student Thomas...},
+	date_of_birth	=> qq{3 July 1962},
+	place_of_birth	=> qq{Syracuse, New York, USA},	
+	photo			=> 'http://ia.imdb.com/media/imdb/01/I/51/45/38m.jpg',
+);
+
+use_ok('IMDB::Film');
+use_ok('IMDB::Persons');
 
 my $online_test = prompt("\nDo you want to connect to IMDB?", "Y");
 
 SKIP: {
-	skip "online test!", 30 if $online_test =~ /^(n|q)/i;
-
-	my $proxy = $ENV{http_proxy} ? $ENV{http_proxy} : 'no';
-	$proxy = prompt("\nUse proxy?", "$proxy");
-	print "\n";
-
-	print "\nTesting film '$film_info{title}' [$film_info{code}] ...\n\n";
-
+	skip "online test!", 45 if $online_test =~ /^(n|q)/i;
+	
+	print "\nTesting search a movie by its code [$film_info{code}] ...\n\n";
 	my %pars = (crit => $film_info{code});
-	$pars{proxy} = $proxy if defined $proxy && $proxy !~ /^no/i;
+	#$pars{proxy} = $proxy if defined $proxy && $proxy !~ /^no/i;
 	$pars{cache} = 0;
 	$pars{debug} = 0;
 	my $film = new IMDB::Film(%pars);
 	isa_ok($film, 'IMDB::Film');	
-	compare_props($film);	
+	compare_props($film);
 
+	print "\nTesting search a movie by its title [$film_info{title}] (many matched results) ...\n\n";
 	$pars{crit} = $film_info{title};
 	$film = new IMDB::Film(%pars);
 	compare_props($film);
 	
+	print "\nTesting search a movie by its title [Con Air] (one matched result) ...\n\n";	
 	$pars{crit} = 'Con Air';
 	$film = new IMDB::Film(%pars);	
-	is($film->code, '0118880', 'search code')
+	is($film->code, '0118880', 'search code');
+
+	print "\nTesting search IMDB person by its code [$person_info{code}] ...\n\n";
+	$pars{crit} = $person_info{code};
+	my $person = new IMDB::Persons(%pars);
+	isa_ok($person, 'IMDB::Persons');	
+	test_person($person);
+	
+	print "\nTesting search IMDB person by its name [$person_info{name}] ...\n\n";
+	$pars{crit} = $person_info{name};
+	$person = new IMDB::Persons(%pars);
+	test_person($person);
+
+	print "\nFinished!\n";
 };
 
 sub compare_props {
@@ -92,4 +112,15 @@ sub compare_props {
 	my($rating, $val) = $film->rating();
 	like($rating, qr/\d+\.?\d+/, 'rating (array context)');
 	like($val, qr/\d+/, 'number of votes');
+}
+
+sub test_person {
+	my $p = shift;
+	
+	is($p->code, $person_info{code}, 'code');
+	is($p->name, $person_info{name}, 'name');
+	is($p->date_of_birth, $person_info{date_of_birth}, 'date_of_birth');
+	is($p->place_of_birth, $person_info{place_of_birth}, 'place_of_birth');
+	is($p->mini_bio, $person_info{mini_bio}, 'mini_bio');
+	is($p->photo, $person_info{photo}, 'photo');
 }

@@ -1,5 +1,12 @@
 Revision history for Perl module IMDB::Film
 
+0.10 Jan 07 2005
+	- moved all common functionality into base class;
+	- added a new class to retrieve an information about IMDB persons;
+	- modified a test;
+	- fixed a bug with undefined value in the method 'rating'.
+	- fixed a bug with using fields.
+
 0.05 Dec 28 2004
 	- added a new method - full_plot to retrieve
 		a full novie plot;
