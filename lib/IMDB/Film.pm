@@ -10,15 +10,15 @@ IMDB::Film 0.01
 
 use IMDB;
 
-C<my $imdbObj = new IMDB::Film(crit => 227445);>
+my $imdbObj = new IMDB::Film(crit => 227445);
 
 or
 
-C<my $imdbObj = new IMDB::Film(crit => 'Troy');>
+my $imdbObj = new IMDB::Film(crit => 'Troy');
 
-C<print "Title: ".$imdbObj->title()."\n";
+print "Title: ".$imdbObj->title()."\n";
 print "Year: ".$imdbObj->year()."\n";
-print "Plot Symmary: ".$imdbObj->plot()."\n";>
+print "Plot Symmary: ".$imdbObj->plot()."\n";
 
 =head1 DESCRIPTION
 
@@ -77,7 +77,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.01';
+		$VERSION = '0.02';
 						
 		# Convert age gradation to the digits		
 		%FILM_CERT = ( G => 'All', R => 16, 'NC-17' => 16, PG => 13, 'PG-13' => 13 );					
@@ -116,11 +116,11 @@ BEGIN {
 
 Object's constructor. You should pass as parameter movie title or IMDB code.
 
-	C<my $imdb = new IMDB::Film(crit => <some code>);>
+	my $imdb = new IMDB::Film(crit => <some code>);
 
 or	
 
-	C<my $imdb = new IMDB::Film(crit => <some title>);>
+	my $imdb = new IMDB::Film(crit => <some title>);
 
 Also, you can specify following optional parameters:
 	
@@ -144,7 +144,7 @@ sub new {
 
 =item _init()
 
-Initialize object's properties which defined in the @OBJ_PROPS.
+Initialize object.
 
 =cut
 sub _init {
@@ -181,12 +181,12 @@ sub _init {
 Store address of proxy server. You can pass a proxy name as parameter into
 object constructor:
 
-	C<my $imdb = new IMDB::Film(code => 111111, proxy => 'my.proxy.host:8080');>
+	my $imdb = new IMDB::Film(code => 111111, proxy => 'my.proxy.host:8080');
 
 or you can define environment variable 'http_host'. For exanple, for Linux
 you shoud do a following:
 
-	C<export http_proxy=my.proxy.host:8080> 
+	export http_proxy=my.proxy.host:8080
 	
 =cut
 sub _proxy {
@@ -199,7 +199,7 @@ sub _proxy {
 
 Store cache flag. Indicate use file cache to store content page or not:
 	
-	C<my $imdb = new IMDB::Film(code => 111111, cache => 1);>
+	my $imdb = new IMDB::Film(code => 111111, cache => 1);
 
 =cut
 sub _cache {
@@ -224,7 +224,7 @@ sub _cacheObj {
 
 In case of using cache, we can define value time of cache expire.
 
-	C<my $imdb = new IMDB::Film(code => 111111, cache_exp => '1 h');>
+	my $imdb = new IMDB::Film(code => 111111, cache_exp => '1 h');
 
 For more details please see Cache::Cache documentation.
 
@@ -239,7 +239,7 @@ sub _cache_exp {
 
 Store IMDB host name. You can pass this value in object constructor:
 		
-	C<my $imdb = new IMDB::Film(code => 111111, host => 'us.imdb.com');>
+	my $imdb = new IMDB::Film(code => 111111, host => 'us.imdb.com');
 
 By default, it uses 'www.imdb.com'.
 
@@ -255,7 +255,7 @@ sub _host {
 Store query string to retrieve film by its ID. You can define
 different value for that:
 
-	C<my $imdb = new IMDB::Film(code => 111111, query => 'some significant string');>
+	my $imdb = new IMDB::Film(code => 111111, query => 'some significant string');
 
 Default value is 'title/tt'.
 
@@ -286,7 +286,7 @@ sub _search {
 
 Indicate to use DEBUG mode to display some debug messages:
 	
-	C<my $imdb = new IMDB::Film(code => 111111, debug => 1);>
+	my $imdb = new IMDB::Film(code => 111111, debug => 1);
 
 By default debug mode is switched off.	
 
@@ -421,7 +421,7 @@ Retrieve film title from film page. If was got search page instead
 of film page this method calls method _search_film to get list
 matched films and continue to process first one:
 
-	C<my $title = $film->title()>
+	my $title = $film->title();
 
 =cut
 sub title {	
@@ -449,7 +449,7 @@ sub title {
 
 Get film year:
 	
-	C<$film->year();>
+	my $year = $film->year();
 
 =cut
 sub year {
@@ -461,7 +461,7 @@ sub year {
 
 Retrieve url of film cover:
 
-	C<my $cover = $film->cover();>
+	my $cover = $film->cover();
 
 =cut
 sub cover {
@@ -493,7 +493,7 @@ sub cover {
 Retrieve film directors list each element of which is hash reference -
 { id => <ID>, name => <Name> }:
 
-	C<my @directors = @{ $film->directors() };>
+	my @directors = @{ $film->directors() };
 	
 =cut
 sub directors {
@@ -529,7 +529,7 @@ sub directors {
 Retrieve film writers list each element of which is hash reference -
 { id => <ID>, name => <Name> }:
 
-	C<my @writers = @{ $film->writers() };>
+	my @writers = @{ $film->writers() };
 
 =cut
 sub writers {
@@ -565,7 +565,7 @@ sub writers {
 
 Retrieve film genres list:
 
-	C<my @genres = @{ $film->genres() };>
+	my @genres = @{ $film->genres() };
 
 =cut
 sub genres {
@@ -597,7 +597,7 @@ sub genres {
 
 Retrieve film tagline:
 	
-	C<my $tagline = $film->tagline();>
+	my $tagline = $film->tagline();
 
 =cut
 sub tagline {
@@ -621,7 +621,7 @@ sub tagline {
 
 Retrieve film plot summary:
 
-	C<my $plot = $film->plot();>
+	my $plot = $film->plot();
 
 =cut
 sub plot {
@@ -647,7 +647,7 @@ sub plot {
 
 Retrieve film user rating:
 	
-	C<my $rate = $film->rating();>
+	my $rate = $film->rating();
 
 =cut
 sub rating {
@@ -673,7 +673,7 @@ sub rating {
 Retrieve film casts list each element of which is hash reference -
 { id => <ID>, name => <Name> }:
 
-	C<my @casts = @{ $film->casts() };>
+	my @casts = @{ $film->casts() };
 
 =cut
 sub casts {
@@ -707,7 +707,7 @@ sub casts {
 
 Retrieve film duration in minutes:
 
-	C<my duration = $film->duration();>
+	my $duration = $film->duration();
 
 =cut
 sub duration {
@@ -732,7 +732,7 @@ sub duration {
 
 Retrieve film produced countries list:
 
-	C<my @countries = $film->country();>
+	my @countries = $film->country();
 
 =cut
 sub country {
@@ -765,7 +765,7 @@ sub country {
 
 Retrieve film languages list:
 
-	C<my $languages = $film->language();>
+	my @languages = $film->language();
 
 =cut
 sub language {
@@ -799,7 +799,7 @@ sub language {
 
 Retrieve film user summary:
 
-	C<my $descr = $film->summary();>
+	my $descr = $film->summary();
 	
 =cut
 sub summary {
@@ -827,7 +827,7 @@ sub summary {
 Retrieve list of film certifications each element of which is hash reference -
 { country => certificate }:
 
-	C<my @cert = $film->certifications();>
+	my @cert = $film->certifications();
 
 =cut
 sub certifications {
@@ -862,7 +862,7 @@ sub certifications {
 Retrieve list of matched films each element of which is hash reference - 
 { id => <Film ID>, title => <Film Title>:
 
-	C<my @matched = @{ $film->matched() };>
+	my @matched = @{ $film->matched() };
 
 =cut
 sub matched {
@@ -876,7 +876,7 @@ sub matched {
 
 Return string which contains error messages separated by \n:
 
-	C<my $errors = $film->error();>
+	my $errors = $film->error();
 
 =cut
 sub error {

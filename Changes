@@ -1,6 +1,9 @@
 Revision history for Perl module IMDB::Film
 
-0.01 Tue Jul 27 17:34:09 2004
+0.02 Jul 28 2004
+	- fixed class documentation;	
+
+0.01 Jul 27 2004
 	- original version; created by ExtUtils::ModuleMaker 0.32
 
 
