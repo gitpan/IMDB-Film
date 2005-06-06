@@ -2,7 +2,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
     NAME              	=> 'IMDB::Film',
-    VERSION_FROM      	=> 'lib/IMDB/Film.pm', 
+    VERSION_FROM      	=> 'lib/IMDB/BaseClass.pm', 
 	PREREQ_PM         	=> {
 							HTML::TokeParser 	=> 2.28,
 							LWP::UserAgent		=> 2.024,

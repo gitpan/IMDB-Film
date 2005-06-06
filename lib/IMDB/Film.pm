@@ -16,9 +16,13 @@ IMDB::Film 0.01
 
 	my $imdbObj = new IMDB::Film(crit => 'Troy');
 
-	print "Title: ".$imdbObj->title()."\n";
-	print "Year: ".$imdbObj->year()."\n";
-	print "Plot Symmary: ".$imdbObj->plot()."\n";
+	if($imdbObj->status) {
+		print "Title: ".$imdbObj->title()."\n";
+		print "Year: ".$imdbObj->year()."\n";
+		print "Plot Symmary: ".$imdbObj->plot()."\n";
+	} else {
+		print "Something wrong: ".$imdbObj->error;
+	}
 
 =head1 DESCRIPTION
 
@@ -67,7 +71,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.12';
+		$VERSION = '0.13';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -86,6 +90,7 @@ BEGIN {
 	sub get_objcount { $_objcount }
 	sub _incr_objcount { ++$_objcount }
 	sub _decr_objcount { --$_objcount }	
+
 }
 
 =head2 Constructor and initialization
@@ -117,13 +122,17 @@ sub _init {
 	my CLASS_NAME $self = shift;
 	my %args = @_;
 
-	croak "Film IMDB ID or Title should be defined!" 
-								if !defined $args{crit} or $args{crit} eq '';									
-
+	croak "Film IMDB ID or Title should be defined!" if !$args{crit};
 	
 	$self->SUPER::_init(%args);
 	
 	$self->title(FORCED);
+
+	unless($self->title) {
+		$self->status(0);
+		$self->error('Not Found');
+		return;
+	} else { $self->status(1) }
 
 	for my $prop (grep { /^_/ && !/^(_title|_code)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
@@ -175,11 +184,13 @@ sub title {
 			$self->_show_message("Go to search page ...", 'DEBUG');
 			$title = $self->_search_film();				
 		} 
-	
-		$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
-															unless $self->code;
 		
-		($self->{_title},$self->{_year}) = $title =~ m!(.*?)\s+\((\d{4}).*?\)!;
+		if($title) {
+			$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
+																unless $self->code;
+		
+			($self->{_title}, $self->{_year}) = $title =~ m!(.*?)\s+\((\d{4}).*?\)!;
+		}	
 	}	
 	
 	return $self->{_title};
@@ -547,6 +558,29 @@ sub language {
 	return $self->{_language};
 
 }
+
+=item error()
+
+Return string which contains error messages separated by \n:
+
+	my $errors = $film->error();
+
+=cut
+
+=item status()
+
+Return a status of retrieving an information about movie from IMDB:
+1 - successful, 0 - something wrong
+
+	my $film = new IMDB::Film(crit => 'Troy');
+	if($film->status) {
+		print $film->title;
+	} else {
+		warn "Something wrong: ".$film->error;
+	}
+
+=cut
+
 
 =item summary()
 

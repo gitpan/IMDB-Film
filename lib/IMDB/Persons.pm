@@ -12,6 +12,13 @@ from IMDB.com
 	or 
 
   	my $person = new IMDB::Persons(crit => 'Tom Cruise');
+
+	if($person->status) {
+		print "Name: ".$person->name."\n";
+		print "Birth Date: ".$person->date_of_birth."\n";
+	} else {
+		print "Something wrong: ".$person->error."!\n";
+	}
   
 =head1 DESCRIPTION
 
@@ -46,7 +53,7 @@ use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.12';
+	$VERSION = '0.13';
 }
 
 {
@@ -135,9 +142,16 @@ sub name {
 			$self->_show_message("Go to search page ...", 'DEBUG');
 			$title = $self->_search_person();				
 		} 
-		
-		$self->retrieve_code($parser, 'pro.imdb.com/name/nm(\d+)') unless $self->code;
-		
+
+		if($title) {		
+			$self->status(1);
+			$self->retrieve_code($parser, 'pro.imdb.com/name/nm(\d+)') 
+															unless $self->code;
+		} else {
+			$self->status(0);
+			$self->error('Not Found');
+		}
+
 		$self->{'_name'} = $title;
 	}
 

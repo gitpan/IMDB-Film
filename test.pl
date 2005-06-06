@@ -4,7 +4,7 @@
 #
 use strict;
 use warnings;
-use Test::More tests => 84;
+use Test::More tests => 94;
 use ExtUtils::MakeMaker qw(prompt);
 
 use Data::Dumper;
@@ -12,6 +12,7 @@ use Data::Dumper;
 my %films = (
 	'0332452' => {
 		code    		=> '0332452',
+		id 		   		=> '0332452',
 		title   		=> 'Troy',
 		year    		=> '2004',
 		genres			=> [qw(Action Drama War Adventure Romance)],
@@ -45,6 +46,7 @@ my %films = (
 
 	'0118694' => {
 		code			=> '0118694',
+		id				=> '0118694',
         lookup_title	=> 'In the Mood for Love',
         title           => 'Fa yeung nin wa',
        	year            => '2000',
@@ -77,6 +79,7 @@ my %films = (
 
 my %person_info = (
 	code                    => '0000129',
+	id	                    => '0000129',
 	name                    => qq{Tom Cruise},
 	mini_bio                => qq{In 1976, if you had told 14 year old Franciscan seminary student Thomas...},
 	date_of_birth   => qq{3 July 1962},
@@ -111,9 +114,16 @@ SKIP: {
 		compare_props($film, $id);
 	}	
 
+	print "\nTesting case if no search results ...\n\n";
+	$pars{crit} = 'hhhhhhhhhhh';
+	my $film = new IMDB::Film(%pars);
+	is($film->error, 'Not Found', 'error');
+	is($film->status, 0, 'status');
+	is($film->code, undef, 'code');
+
 	print "\nTesting search a movie by its title [Con Air] (one matched result) ...\n\n";
 	$pars{crit} = 'Con Air';
-	my $film = new IMDB::Film(%pars);	
+	$film = new IMDB::Film(%pars);	
 	is($film->code, '0118880', 'search code');
 
 	print "\nTestin search a movie without rating ...\n";
@@ -136,6 +146,13 @@ SKIP: {
 	$pars{crit} = $person_info{name};
 	$person = new IMDB::Persons(%pars);
 	test_person($person);
+
+	print "\nTesting search IMDB person if there are no matches ...\n\n";
+	$pars{crit} = 'hhhhhhhhhhhhh';
+	$person = new IMDB::Persons(%pars);
+	is($person->error, 'Not Found', 'error');
+	is($person->status, 0, 'status');
+	is($person->code, undef, 'code');
 
 	print "\nFinished!\n";
 };

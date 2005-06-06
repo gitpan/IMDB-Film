@@ -1,5 +1,13 @@
 Revision history for Perl module IMDB::Film
 
+0.13 June 03 2005
+	- fixed a bug with craching of search when no any matches were 
+		found (reported by Peter Bäckman);
+	- added a new property - status which indicates is successful or
+		not information was retrieved from IMDB;
+	- added a new property - id which is the same as code because
+		it's not clear that IMDB code is like id.
+
 0.12 March 07 2005
 	- fixed a bug with retrieving information about movie
 		persons in case no proxy server;

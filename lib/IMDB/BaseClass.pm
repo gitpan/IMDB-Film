@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.12';
+	$VERSION = '0.13';
 }
 
 use constant FORCED 	=> 1;
@@ -45,7 +45,9 @@ use fields qw(	content
 				cacheObj
 				cache_exp
 				debug
+				status
 				_code
+				
 	);
 
 {
@@ -69,6 +71,7 @@ use fields qw(	content
         host		=> 'www.imdb.com',
         query		=> 'title/tt',
         search 		=> 'find?tt=on;mx=20;q=',		
+		status		=> 0,		
 	);
 
 	sub _get_default_attrs { keys %_defaults }		
@@ -138,6 +141,19 @@ Get IMDB film code.
 
 =cut
 sub code {
+	my CLASS_NAME $self = shift;
+	if(@_) { $self->{_code} = shift }
+	return $self->{_code};
+}
+
+=item id()
+
+Get IMDB film id (actually, it's the same as code).
+
+	my $id = $film->id();
+
+=cut
+sub id {
 	my CLASS_NAME $self = shift;
 	if(@_) { $self->{_code} = shift }
 	return $self->{_code};
@@ -296,7 +312,7 @@ page in the cache.
 sub _content {
 	my CLASS_NAME $self = shift;
 	if(@_) {
-		my $crit = shift;
+		my $crit = shift || '';
 		my $page;
 	
 		$page = $self->_cacheObj()->get($crit) if $self->_cache();
@@ -317,7 +333,7 @@ sub _content {
 			my $res = $ua->request($req);
 
 			unless($res->is_success) {
-				$self->error($res->status_line());
+				$self->error($res->status_line());				
 				$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');				
 			}
 			
@@ -368,13 +384,15 @@ sub _search_results {
 	my @matched;
 	my $parser = $self->_parser();
 
+
+
 	while( my $tag = $parser->get_tag('a') ) {
 		my $href = $tag->[1]{href};
 		if( my($id) = $href =~ /$pattern/ ) {
 			push @matched, {id => $id, title => $parser->get_trimmed_text('a', $end_tag)};
 		}	
-	}	
-	
+	}
+
 	$self->matched(\@matched);
 	$self->_content($matched[0]->{id});
 	$self->_parser(FORCED);
@@ -396,20 +414,24 @@ sub matched {
 	return $self->{matched};
 }
 
+sub status {
+	my CLASS_NAME $self = shift;
+	if(@_) { $self->{status} = shift }
+	return $self->{status}
+}
+
 sub retrieve_code {
 	my CLASS_NAME $self = shift;
 	my $parser = shift;
 	my $pattern = shift;
 	my($id, $tag);			
-			
+	
 	while($tag = $parser->get_tag('a')) {
 		if($tag->[1]{href} && $tag->[1]{href} =~ m!$pattern!) {
 			$self->code($1);
 			last;
 		}	
 	}	
-	
-	croak "Cannot retrieve a movie code!" unless $self->code;
 }
 
 =item error()
