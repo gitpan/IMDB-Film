@@ -127,7 +127,7 @@ sub _init {
 	$self->SUPER::_init(%args);
 	
 	$self->title(FORCED);
-
+	
 	unless($self->title) {
 		$self->status(0);
 		$self->error('Not Found');
@@ -180,16 +180,17 @@ sub title {
 	
 		$parser->get_tag('title');
 		my $title = $parser->get_text();
-		if($title =~ /IMDb title search/i) {
+		if($title =~ /imdb\s+title\s+search/i) {
 			$self->_show_message("Go to search page ...", 'DEBUG');
 			$title = $self->_search_film();				
 		} 
 		
 		if($title) {
 			$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
-																unless $self->code;
+														unless $self->code;
 		
-			($self->{_title}, $self->{_year}) = $title =~ m!(.*?)\s+\((\d{4}).*?\)!;
+			($self->{_title}, $self->{_year}) = 
+										$title =~ m!(.*?)\s+\((\d{4}).*?\)!;
 		}	
 	}	
 	

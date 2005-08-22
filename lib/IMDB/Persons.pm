@@ -53,7 +53,7 @@ use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.13';
+	$VERSION = '0.14';
 }
 
 {
@@ -64,7 +64,7 @@ BEGIN {
 	sub _decr_objcount { --$_objcount }	
 
 	my %_defaults = ( 
-		proxy		=> '',
+		proxy		=> $ENV{http_proxy},
         host		=> 'www.imdb.com',
         query		=> 'name/nm',
         search 		=> 'find?nm=on;mx=20;q=',		
@@ -94,7 +94,6 @@ sub _init {
 
 	croak "Person IMDB ID or Name should be defined!" if !$args{crit};									
 
-	$args{proxy} = $self->get_proxy() if !$args{proxy}; 	
 	$self->SUPER::_init(%args);
 	my $name = $self->name();
 	
@@ -138,7 +137,7 @@ sub name {
 
 		$self->_show_message("Title=$title", 'DEBUG');
 		
-		if($title =~ /IMDb name search/i) {
+		if($title =~ /imdb\s+name\s+search/i) {
 			$self->_show_message("Go to search page ...", 'DEBUG');
 			$title = $self->_search_person();				
 		} 

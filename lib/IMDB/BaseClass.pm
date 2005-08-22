@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.13';
+	$VERSION = '0.14';
 }
 
 use constant FORCED 	=> 1;
@@ -57,13 +57,13 @@ use fields qw(	content
 	sub _incr_objcount { ++$_objcount }
 	sub _decr_objcount { --$_objcount }
 	
-	my($proxy);
-	if(defined $ENV{http_proxy}) {
-		$proxy = $ENV{http_proxy} =~ m!^http:\/\/(.*?):! ? $1 : $ENV{http_proxy};		
-	}
+	#my($proxy);
+	#if(defined $ENV{http_proxy}) {
+	#	$proxy = $ENV{http_proxy} =~ m!^http:\/\/(.*?):! ? $1 : $ENV{http_proxy};		
+	#}	
 
 	my %_defaults = ( 
-		proxy		=> $proxy,
+		proxy		=> $ENV{http_proxy},
 		cache		=> 0,
 		debug		=> 0,
 		error		=> [],
@@ -126,7 +126,9 @@ sub _init {
 		$self->{$prop} = defined $args{$prop} ? 
 								$args{$prop} : $self->_get_default_value($prop);	
 	}
-
+	
+	#$self->_show_message(Dumper($self));
+	
 	$self->_cacheObj( new Cache::FileCache( { default_expires_in => $self->_cache_exp() } ) );
 	
 	$self->_content( $args{crit} );
@@ -178,13 +180,13 @@ sub _proxy {
 	return $self->{proxy};
 }
 
-sub get_proxy {
-	my CLASS_NAME $self = shift;
-	if(defined $ENV{http_proxy}) {
-		my $proxy = $ENV{http_proxy} =~ m!^http:\/\/(.*?):! ? $1 : $ENV{http_proxy};		
-		$self->{proxy} = $proxy;
-	}
-}
+#sub get_proxy {
+#	my CLASS_NAME $self = shift;
+	#if(defined $ENV{http_proxy}) {
+	#	my $proxy = $ENV{http_proxy} =~ m!^http:\/\/(.*?):! ? $1 : $ENV{http_proxy};		
+	#	$self->{proxy} = $proxy;
+	#}
+#}
 
 =item _cache()
 
@@ -322,7 +324,8 @@ sub _content {
 			$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 		
 			my $ua = new LWP::UserAgent();
-			$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if $self->_proxy();
+			#$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if $self->_proxy();
+			$ua->proxy(['http', 'ftp'], $self->_proxy()) if $self->_proxy();
 
 			my $url = 'http://'.$self->_host().'/'.
 						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;
@@ -384,8 +387,6 @@ sub _search_results {
 	my @matched;
 	my $parser = $self->_parser();
 
-
-
 	while( my $tag = $parser->get_tag('a') ) {
 		my $href = $tag->[1]{href};
 		if( my($id) = $href =~ /$pattern/ ) {
@@ -444,7 +445,7 @@ Return string which contains error messages separated by \n:
 sub error {
 	my CLASS_NAME $self = shift;
 	if(@_) { push @{ $self->{error} }, shift() }
-	return join("\n", @{ $self->{error} });
+	return join("\n", @{ $self->{error} }) if $self->{error};
 }
 
 sub AUTOLOAD {

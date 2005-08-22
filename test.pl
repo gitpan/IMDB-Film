@@ -134,7 +134,7 @@ SKIP: {
 	print "\nTesting search a movie with complete credited casts ...\n";
 	$pars{crit} = '0072567';
 	$film = new IMDB::Film(%pars);
-	is_deeply($film->cast->[0], {id => '0815800', name => 'David Soul', role => 'Det. Ken "Hutch" Hutchinson'}, 'casts');
+	is_deeply($film->cast->[1], {id => '0815800', name => 'David Soul', role => 'Det. Ken "Hutch" Hutchinson (1975-1979)'}, 'casts');
 
 	print "\nTesting search IMDB person by its code [$person_info{code}] ...\n\n";
 	$pars{crit} = $person_info{code};
