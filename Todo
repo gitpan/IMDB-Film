@@ -1,5 +1,5 @@
 TODO list for Perl module IMDB::Film
 
-- Nothing yet
-
+- Add functionality to get additional information such as Full Cast and Crew,
+	sound track etc.
 

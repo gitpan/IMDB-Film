@@ -7,11 +7,24 @@ from IMDB.com
 
   	use IMDB::Persons;
 
-	my $person = new IMDB::Persons(crit => '0000129')
+	#
+	# Retrieve a person information by IMDB code
+	#
+	my $person = new IMDB::Persons(crit => '0000129');
 
 	or 
-
+	
+	#
+	# Retrieve a person information by name
+	#
   	my $person = new IMDB::Persons(crit => 'Tom Cruise');
+
+	or 
+	
+	#
+	# Process already stored HTML page from IMDB
+	#
+	my $person = new IMDB::Persons(file => 'imdb.html');
 
 	if($person->status) {
 		print "Name: ".$person->name."\n";
@@ -19,7 +32,7 @@ from IMDB.com
 	} else {
 		print "Something wrong: ".$person->error."!\n";
 	}
-  
+
 =head1 DESCRIPTION
 
 IMDB::Persons allows to retrieve an information about
@@ -53,23 +66,21 @@ use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.14';
+	$VERSION = '0.15';
 }
 
 {
-	my $_objcount = 0;
-
-	sub get_objcount { $_objcount }
-	sub _incr_objcount { ++$_objcount }
-	sub _decr_objcount { --$_objcount }	
-
 	my %_defaults = ( 
-		proxy		=> $ENV{http_proxy},
-        host		=> 'www.imdb.com',
-        query		=> 'name/nm',
-        search 		=> 'find?nm=on;mx=20;q=',		
-		debug		=> 0,
-		cache		=> 0,
+		cache			=> 0,
+		debug			=> 0,
+		error			=> [],
+		cache_exp		=> '1 h',
+        host			=> 'www.imdb.com',
+        query			=> 'name/nm',
+        search 			=> 'find?nm=on;mx=20;q=',		
+		status			=> 0,		
+		timeout			=> 10,
+		user_agent		=> 'Mozilla/5.0',
 	);
 
 	sub _get_default_attrs { keys %_defaults }		
@@ -92,7 +103,7 @@ sub _init {
 	my CLASS_NAME $self = shift;
 	my %args = @_;	
 
-	croak "Person IMDB ID or Name should be defined!" if !$args{crit};									
+	croak "Person IMDB ID or Name should be defined!" if !$args{crit} && !$args{file};									
 
 	$self->SUPER::_init(%args);
 	my $name = $self->name();
@@ -301,7 +312,6 @@ sub filmography_types {
 
 sub DESTROY {
 	my $self = shift;
-	$self->_decr_objcount();
 }
 
 1;
@@ -314,11 +324,14 @@ Nothing
 
 =head1 BUGS
 
-Please, send me any found bugs by email: misha@thunderworx.com. 
+Please, send me any found bugs by email: stepanov.michael@gmail.com. 
 
 =head1 SEE ALSO
 
-HTML::TokeParser, IMDB::BaseClass; IMDB::Film;
+IMDB::Film
+IMDB::BaseClass
+WWW::Yahoo::Movies
+HTML::TokeParser
 
 =head1 AUTHOR
 
@@ -326,7 +339,7 @@ Mikhail Stepanov (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004, Mikhail Stepanov. All Rights Reserved.
+Copyright (c) 2004 - 2005, Mikhail Stepanov. All Rights Reserved.
 This module is free software. It may be used, redistributed and/or 
 modified under the same terms as Perl itself.
 

@@ -1,4 +1,4 @@
-IMDB-Film version 0.12
+IMDB-Film version 0.14
 ======================
 
 IMDB::Film is OO Perl interface to the database of films
@@ -22,6 +22,12 @@ To install this module in the specific path use:
 	
 	perl Makefile.PL PREFIX=/path/to/your/lib
 
+To install the module in your home directory use that command:
+
+	perl Makefile.PL PREFIX=YOU_HOME/path/to/your/lib
+
+You don't need to have a root privileges to do that!	
+
 DEPENDENCIES
 
 This module requires these other modules and libraries:
@@ -32,7 +38,7 @@ This module requires these other modules and libraries:
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2004 by Michael Stepanov (misha@thunderworx.com). 
+Copyright (C) 2004 - 2005 by Michael Stepanov (stepanov.michael@gmail.com). 
 All rights reserved.
 
 This library is free software; you can redistribute it and/or modify

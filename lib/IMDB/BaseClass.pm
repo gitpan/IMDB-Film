@@ -18,7 +18,7 @@ use strict;
 use warnings;
 
 use HTML::TokeParser;
-use LWP::UserAgent;
+use LWP::Simple qw($ua get);
 use Cache::FileCache;
 use Carp;
 
@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.14';
+	$VERSION = '0.15';
 }
 
 use constant FORCED 	=> 1;
@@ -46,40 +46,12 @@ use fields qw(	content
 				cache_exp
 				debug
 				status
+				file
+				timeout
+				user_agent
 				_code
 				
 	);
-
-{
-	my $_objcount = 0;
-
-	sub get_objcount { $_objcount }
-	sub _incr_objcount { ++$_objcount }
-	sub _decr_objcount { --$_objcount }
-	
-	#my($proxy);
-	#if(defined $ENV{http_proxy}) {
-	#	$proxy = $ENV{http_proxy} =~ m!^http:\/\/(.*?):! ? $1 : $ENV{http_proxy};		
-	#}	
-
-	my %_defaults = ( 
-		proxy		=> $ENV{http_proxy},
-		cache		=> 0,
-		debug		=> 0,
-		error		=> [],
-		cache_exp	=> '1 h',
-        host		=> 'www.imdb.com',
-        query		=> 'title/tt',
-        search 		=> 'find?tt=on;mx=20;q=',		
-		status		=> 0,		
-	);
-
-	sub _get_default_attrs { keys %_defaults }		
-	sub _get_default_value {
-		my($self, $attr) = @_;
-		$_defaults{$attr};
-	}
-}
 
 =head2 Constructor and initialization
 
@@ -105,7 +77,6 @@ Also, you can specify following optional parameters:
 sub new {
 	my $caller = shift;
 	my $class = ref($caller) || $caller;
-	$class->_incr_objcount();
 	my $self = fields::new($class);
 	$self->_init(@_);
 	return $self;
@@ -122,18 +93,49 @@ sub _init {
 
 	no warnings 'deprecated';
 
-	for my $prop ( $self->_get_default_attrs ) {		
-		$self->{$prop} = defined $args{$prop} ? 
-								$args{$prop} : $self->_get_default_value($prop);	
+	#for my $prop ( $self->_get_default_attrs ) {		
+	for my $prop ( keys %FIELDS ) {		
+		unless($prop =~ /^_/) {
+			$self->{$prop} = defined $args{$prop} ? $args{$prop} : $self->_get_default_value($prop);	
+		}	
 	}
-	
-	#$self->_show_message(Dumper($self));
 	
 	$self->_cacheObj( new Cache::FileCache( { default_expires_in => $self->_cache_exp() } ) );
 	
+	if($self->_proxy) { $ua->proxy(['http', 'ftp'], $self->_proxy()) }
+	else { $ua->env_proxy() }
+
+	$ua->timeout($self->timeout);
+	$ua->agent($self->user_agent);
+
 	$self->_content( $args{crit} );
 	$self->_parser();
 }
+
+=item user_agent()
+
+Define an user agent for HTTP request. It's 'Mozilla/5.0' by default.
+For more information refer to LWP::UserAgent.
+
+=cut
+sub user_agent {
+	my CLASS_NAME $self = shift;
+	if(@_) { $self->{user_agent} = shift }
+	return $self->{user_agent}
+}
+
+=item timeout()
+
+Define a timeout for HTTP request in seconds. By default it's 10 sec.
+For more information refer to LWP::UserAgent.
+
+=cut
+sub timeout {
+	my CLASS_NAME $self = shift;
+	if(@_) { $self->{timeout} = shift }
+	return $self->{timeout}
+}
+
 
 =item code()
 
@@ -179,14 +181,6 @@ sub _proxy {
 	if(@_) { $self->{proxy} = shift }
 	return $self->{proxy};
 }
-
-#sub get_proxy {
-#	my CLASS_NAME $self = shift;
-	#if(defined $ENV{http_proxy}) {
-	#	my $proxy = $ENV{http_proxy} =~ m!^http:\/\/(.*?):! ? $1 : $ENV{http_proxy};		
-	#	$self->{proxy} = $proxy;
-	#}
-#}
 
 =item _cache()
 
@@ -319,28 +313,32 @@ sub _content {
 	
 		$page = $self->_cacheObj()->get($crit) if $self->_cache();
 		$self->code($crit) if $crit =~ /^\d+$/;
-
-		unless($page) {			
-			$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 		
-			my $ua = new LWP::UserAgent();
-			#$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if $self->_proxy();
-			$ua->proxy(['http', 'ftp'], $self->_proxy()) if $self->_proxy();
-
-			my $url = 'http://'.$self->_host().'/'.
+		$self->_show_message("CRIT: $crit", 'DEBUG');
+		
+		unless($page) {			
+			if( -f $crit ) {
+				$self->_show_message("Parse IMDB HTML file ...", 'DEBUG');
+				
+				undef $/;
+				open FILE, $crit or die "Cannot open off-line IMDB file: $!!";
+				$page = <FILE>;
+				close FILE;
+			} else {
+				$self->_show_message("Retrieving page from internet ...", 'DEBUG');
+					
+				my $url = 'http://'.$self->_host().'/'.
 						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;
 
-			$self->_show_message("URL is [$url]...", 'DEBUG');
+				$self->_show_message("URL is [$url]...", 'DEBUG');
 
-			my $req = new HTTP::Request(GET => $url);
-			my $res = $ua->request($req);
+				$page = get($url);
 
-			unless($res->is_success) {
-				$self->error($res->status_line());				
-				$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');				
+				unless($page) {
+					$self->error("Cannot retieve an url: [$url]!");				
+					$self->_show_message("Cannot retrieve url [$url]", 'CRITICAL');				
+				}
 			}
-			
-			$page = $res->content();
 			
 			$self->_cacheObj()->set($crit, $page, $self->_cache_exp()) if $self->_cache();
 		} else {
@@ -470,11 +468,14 @@ Nothing
 
 =head1 BUGS
 
-Please, send me any found bugs by email: misha@thunderworx.com. 
+Please, send me any found bugs by email: stepanov.michael@gmail.com. 
 
 =head1 SEE ALSO
 
-HTML::TokeParser, IMDB::Persons; IMDB::Film;
+IMDB::Persons 
+IMDB::Film
+WWW::Yahoo::Movies
+HTML::TokeParser 
 
 =head1 AUTHOR
 
@@ -482,7 +483,7 @@ Mikhail Stepanov (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004, Mikhail Stepanov. All Rights Reserved.
+Copyright (c) 2004 - 2005, Mikhail Stepanov. All Rights Reserved.
 This module is free software. It may be used, redistributed and/or 
 modified under the same terms as Perl itself.
 

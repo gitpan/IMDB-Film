@@ -1,5 +1,13 @@
 Revision history for Perl module IMDB::Film
 
+0.15 November 18 2005
+	- added possibility to pass HTML page from IMDB instead of connection
+		and getting page online (thanks to Brano Gerzo for idea);
+	- switched to LWP::Simple from LWP::UserAgent;
+	- added possibility to specify timeout and user agent for HTTP request;
+	- removed a retrieving of a full plot from initialization stage;
+	- improved test suite;	
+
 0.14 August 22 2005
 	- fixed a bug with search film by title (reported by Scott D'Aquila 
 		and Kwesi Leggett);

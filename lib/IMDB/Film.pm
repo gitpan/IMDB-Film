@@ -4,17 +4,30 @@ IMDB::Film - OO Perl interface to the movies database IMDB.
 
 =head1 VERSION
 
-IMDB::Film 0.01
+IMDB::Film 0.14
 
 =head1 SYNOPSIS
 
 	use IMDB;
-
+	
+	#
+	# Retrieve a movie information by its IMDB code
+	#
 	my $imdbObj = new IMDB::Film(crit => 227445);
 
 	or
-
+	
+	#
+	# Retrieve a movie information by its title
+	#
 	my $imdbObj = new IMDB::Film(crit => 'Troy');
+
+	or
+
+	#
+	# Parse already stored HTML page from IMDB
+	#
+	my $imdbObj = new IMDB::Film(crit => 'troy.html');
 
 	if($imdbObj->status) {
 		print "Title: ".$imdbObj->title()."\n";
@@ -41,9 +54,6 @@ use warnings;
 use base qw(IMDB::BaseClass);
 
 use Carp;
-use LWP::Simple;
-
-use Data::Dumper;
 
 use fields qw(	_title
 				_year
@@ -61,6 +71,7 @@ use fields qw(	_title
 				_certifications
 				_duration
 				_full_plot
+				full_plot_url
 		);
 	
 use vars qw( $VERSION %FIELDS %FILM_CERT $PLOT_URL );
@@ -71,7 +82,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.13';
+		$VERSION = '0.15';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -79,18 +90,29 @@ BEGIN {
 						R 		=> 16, 
 						'NC-17' => 16, 
 						PG 		=> 13, 
-						'PG-13' => 13 );		
-
-		$PLOT_URL = 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt';				
+						'PG-13' => 13 );							
 }
 
 {
-	my $_objcount = 0;
-
-	sub get_objcount { $_objcount }
-	sub _incr_objcount { ++$_objcount }
-	sub _decr_objcount { --$_objcount }	
-
+	my %_defaults = (
+		cache			=> 0,
+		debug			=> 0,
+		error			=> [],
+		cache_exp		=> '1 h',
+        host			=> 'www.imdb.com',
+        query			=> 'title/tt',
+        search 			=> 'find?tt=on;mx=20;q=',		
+		status			=> 0,		
+		timeout			=> 10,
+		user_agent		=> 'Mozilla/5.0',
+		_full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
+	);	
+	
+	sub _get_default_attrs { keys %_defaults }		
+	sub _get_default_value {
+		my($self, $attr) = @_;
+		$_defaults{$attr};
+	}
 }
 
 =head2 Constructor and initialization
@@ -107,11 +129,25 @@ or
 
 	my $imdb = new IMDB::Film(crit => <some title>);
 
+or 
+	my $imdb = new IMDB::Film(crit => <HTML file>);
+
 Also, you can specify following optional parameters:
 	
-	- proxy - define proxy server name and port;
-	- debug	- switch on debug mode (on by default);
-	- cache - cache or not of content retrieved pages.
+- proxy - define proxy server name and port;
+- debug	- switch on debug mode. Can be 0 or 1 (0 by default);
+- cache - cache or not of content retrieved pages. Can be 0 or 1 (0 by default);
+- timeout - timeout for HTTP connection in seconds (10 sec by default);
+- user_agent - specify an user agent ('Mozilla/5.0' by default).
+
+	my $imdb = new IMDB::Film(	crit		=> 'Troy',
+								user_agent	=> 'Opera/8.x',
+								timeout		=> 2,
+								debug		=> 1,
+								cache		=> 1
+							);
+							
+For more infomation about base methods refer to IMDB::BaseClass.
 
 =item _init()
 
@@ -122,7 +158,7 @@ sub _init {
 	my CLASS_NAME $self = shift;
 	my %args = @_;
 
-	croak "Film IMDB ID or Title should be defined!" if !$args{crit};
+	croak "Film IMDB ID or Title should be defined!" if !$args{crit} && !$args{file};
 	
 	$self->SUPER::_init(%args);
 	
@@ -134,10 +170,16 @@ sub _init {
 		return;
 	} else { $self->status(1) }
 
-	for my $prop (grep { /^_/ && !/^(_title|_code)$/ } sort keys %FIELDS) {
+	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
 		$self->$prop(FORCED);
 	}
+}
+
+sub full_plot_url {
+	my CLASS_NAME $self = shift;
+	if(@_) { $self->{full_plot_url} = shift }
+	return $self->{full_plot_url}
 }
 
 =back
@@ -280,6 +322,9 @@ Retrieve film writers list each element of which is hash reference -
 { id => <ID>, name => <Name> }:
 
 	my @writers = @{ $film->writers() };
+
+<I>Note: this method returns Writing credits from movie main page. It maybe not 
+contain a full list!</I>	
 
 =cut
 sub writers {
@@ -437,6 +482,10 @@ Retrieve film cast list each element of which is hash reference -
 { id => <ID>, name => <Full Name>, role => <Role> }:
 
 	my @cast = @{ $film->cast() };
+
+<I>
+Note: this method retrieves a cast list first billed only!
+</I>
 
 =cut
 sub cast {
@@ -652,25 +701,14 @@ Return full movie plot.
 =cut
 sub full_plot {
 	my CLASS_NAME $self = shift;
-	unless($self->{_full_plot}) {		
-		my $url = $PLOT_URL.$self->code().'/plotsummary';
 
-		#my $ua = new LWP::UserAgent();
-		#$ua->proxy(['http', 'ftp'], 'http://'.$self->_proxy()) if defined $self->_proxy();
+	$self->_show_message("Getting full plot ...");
+	
+	unless($self->{_full_plot}) {		
+		my $url = $self->full_plot_url.$self->code().'/plotsummary';
 
 		$self->_show_message("URL is $url ...", 'DEBUG');
 		
-
-		#my $req = new HTTP::Request(GET => $url);
-		#my $res = $ua->request($req);
-
-#		unless($res->is_success) {
-#			$self->error($res->status_line());
-#			$self->_show_message("Cannot retrieve page: ".$res->status_line(), 'CRITICAL');
-#			return;
-#		}
-				
-		#my $page = $res->content();
 		my $page = get($url);
 		unless($page) {
 			$self->error('Cannot retrieve a page!');
@@ -702,7 +740,6 @@ sub full_plot {
 
 sub DESTROY {
 	my CLASS_NAME $self = shift;
-	$self->_decr_objcount();
 }
 
 1;
@@ -727,13 +764,40 @@ Matches USA film certification notation and age.
 
 Nothing
 
+=head1 HOWTO CACTH EXCEPTIONS
+
+If it's needed to get information from IMDB for a list of movies in some case it can be returned
+critical error:
+
+	[CRITICAL] Cannot retrieve page: 500 Can't read entity body ...
+
+To catch an exception can be used eval:
+
+	for my $search_crit ("search_crit1", "search_crit2", ..., "search_critN") {
+    	my $ret;
+    	eval {
+        	$ret = new IMDB::Film(crit => "$search_crit") || print "UNKNOWN ERROR\n";
+    	};
+
+    	if($@) {
+        	# Opsssss! We got an exception!
+        	print "EXCEPTION: $@!";
+        	next;
+    	}
+	}
+
 =head1 BUGS
 
-Please, send me any found bugs by email: misha@thunderworx.com. 
+Please, send me any found bugs by email: stepanov.michael@gmail.com or create 
+a bug report: http://rt.cpan.org/NoAuth/Bugs.html?Dist=IMDB-Film
 
 =head1 SEE ALSO
 
-HTML::TokeParser, IMDB::BaseClass, IMDB::Persons, IMDB::Movie
+IMDB::Persons 
+IMDB::BaseClass
+WWW::Yahoo::Movies
+IMDB::Movie
+HTML::TokeParser 
 
 =head1 AUTHOR
 
@@ -741,7 +805,7 @@ Michael Stepanov (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004, Michael Stepanov. All Rights Reserved.
+Copyright (c) 2004 - 2005, Michael Stepanov. All Rights Reserved.
 This module is free software. It may be used, redistributed and/or 
 modified under the same terms as Perl itself.
 
