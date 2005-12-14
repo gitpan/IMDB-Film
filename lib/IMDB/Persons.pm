@@ -66,7 +66,7 @@ use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.15';
+	$VERSION = '0.16';
 }
 
 {

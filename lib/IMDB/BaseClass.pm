@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.15';
+	$VERSION = '0.16';
 }
 
 use constant FORCED 	=> 1;
@@ -311,8 +311,8 @@ sub _content {
 		my $crit = shift || '';
 		my $page;
 	
-		$page = $self->_cacheObj()->get($crit) if $self->_cache();
 		$self->code($crit) if $crit =~ /^\d+$/;
+		$page = $self->_cacheObj()->get($crit) if $self->_cache();
 		
 		$self->_show_message("CRIT: $crit", 'DEBUG');
 		

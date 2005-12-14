@@ -4,7 +4,7 @@ IMDB::Film - OO Perl interface to the movies database IMDB.
 
 =head1 VERSION
 
-IMDB::Film 0.14
+IMDB::Film 0.16
 
 =head1 SYNOPSIS
 
@@ -54,6 +54,7 @@ use warnings;
 use base qw(IMDB::BaseClass);
 
 use Carp;
+use Data::Dumper;
 
 use fields qw(	_title
 				_year
@@ -68,10 +69,14 @@ use fields qw(	_title
 				_genres
 				_tagline
 				_plot
+				_also_known_as
 				_certifications
 				_duration
 				_full_plot
 				full_plot_url
+				_trivia
+				_goofs
+				_awards
 		);
 	
 use vars qw( $VERSION %FIELDS %FILM_CERT $PLOT_URL );
@@ -82,7 +87,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.15';
+		$VERSION = '0.16';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -106,6 +111,7 @@ BEGIN {
 		timeout			=> 10,
 		user_agent		=> 'Mozilla/5.0',
 		_full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
+		_also_known_as	=> [],
 	);	
 	
 	sub _get_default_attrs { keys %_defaults }		
@@ -198,6 +204,28 @@ sub _search_film {
 
 	return $self->SUPER::_search_results('\/title\/tt(\d+)');
 }
+
+=item _get_simple_prop()
+
+Retrieve a simple movie property which surrownded by <B>.
+
+=cut
+sub _get_simple_prop {
+	my CLASS_NAME $self = shift;
+	my $target = shift || '';
+	
+	my $parser = $self->_parser(FORCED);
+
+	while(my $tag = $parser->get_tag('b')) {
+		my $text = $parser->get_text;
+		last if $text =~ /$target/i;
+	}
+
+	my $res = $parser->get_trimmed_text('b', 'a');
+	
+	return $res;
+}
+
 
 =back
 
@@ -344,7 +372,7 @@ sub writers {
 			last if $tag->[0] eq '/table';
 			
 			if($tag->[0] eq 'a') {
-				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/) {
+				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/ && $text !~ /more/i) {
 					push @writers, {id => $id, name => $text};
 				}	
 			}		
@@ -609,28 +637,77 @@ sub language {
 
 }
 
-=item error()
+=item aka()
 
-Return string which contains error messages separated by \n:
+Retrieve AKA information as array, each element of which is string:
 
-	my $errors = $film->error();
+	my $aka = $film->also_known_as();
 
-=cut
-
-=item status()
-
-Return a status of retrieving an information about movie from IMDB:
-1 - successful, 0 - something wrong
-
-	my $film = new IMDB::Film(crit => 'Troy');
-	if($film->status) {
-		print $film->title;
-	} else {
-		warn "Something wrong: ".$film->error;
-	}
+	print map { "$_\n" } @$aka;
 
 =cut
+sub also_known_as {
+	my CLASS_NAME $self= shift;
+	unless($self->{_also_known_as}) {
+		my $parser = $self->_parser(FORCED);
 
+        while(my $tag = $parser->get_tag('b')) {
+        	my $text = $parser->get_text();
+            last if $text =~ /^(aka|also known as)/i;
+        }
+
+		my $aka = $parser->get_trimmed_text('b', 'b');
+
+		my @aka = $aka =~ /(.+?\)(?:\s\(.+?\))?)\s?/g;
+
+		$self->{_also_known_as} = \@aka;
+	}	
+	
+	return $self->{_also_known_as};
+}
+
+=item trivia()
+
+Retrieve a movie trivia:
+
+	my $trivia = $film->trivia();
+
+=cut
+sub trivia {
+	my CLASS_NAME $self = shift;
+
+	$self->{_trivia} = $self->_get_simple_prop('trivia') unless $self->{_trivia};
+	return $self->{_trivia};
+}
+
+=item goofs()
+
+Retrieve a movie goofs:
+	
+	my $goofs = $film->goofs();
+
+=cut
+sub goofs {
+	my CLASS_NAME $self = shift;
+
+	$self->{_goofs} = $self->_get_simple_prop('goofs') unless($self->{_goofs});
+	return $self->{_trivia};
+}
+
+=item avards()
+
+Retrieve a general information about movie avards like 1 win & 1 nomination:
+
+	my $avards = $film->avards();
+
+=cut	
+sub awards {
+	my CLASS_NAME $self = shift;
+
+	$self->{_awards} = $self->_get_simple_prop('awards') unless $self->{_awards};
+
+	return $self->{_awards};
+}
 
 =item summary()
 
@@ -704,17 +781,24 @@ sub full_plot {
 
 	$self->_show_message("Getting full plot ...");
 	
-	unless($self->{_full_plot}) {		
-		my $url = $self->full_plot_url.$self->code().'/plotsummary';
+	unless($self->{_full_plot}) {
+		my $page;		
+		$page = $self->_cacheObj()->get($self->code.'_plot') if $self->_cache();
+		unless($page) {		
+			my $url = $self->full_plot_url.$self->code().'/plotsummary';
 
-		$self->_show_message("URL is $url ...", 'DEBUG');
+			$self->_show_message("URL is $url ...", 'DEBUG');
 		
-		my $page = get($url);
-		unless($page) {
-			$self->error('Cannot retrieve a page!');
-			$self->_show_message('Cannot retrieve page!', 'CRITICAL');
-			return;
-		}
+			$page = get($url);
+			unless($page) {
+				$self->error('Cannot retrieve a page!');
+				$self->_show_message('Cannot retrieve page!', 'CRITICAL');
+				return;
+			}
+			
+			$self->_cacheObj()->set($self->code.'_plot', $page, $self->_cache_exp()) 
+																if $self->_cache();
+		}	
 
 		my $parser = $self->_parser(FORCED, \$page);
 		
@@ -725,9 +809,8 @@ sub full_plot {
 				last;
 			}
 		}
-
-		$self->{_full_plot} = $text;
-	
+			
+		$self->{_full_plot} = $text;			
 	}
 
 	return $self->{_full_plot};
