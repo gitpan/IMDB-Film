@@ -8,7 +8,7 @@ IMDB::Film 0.16
 
 =head1 SYNOPSIS
 
-	use IMDB;
+	use IMDB::Film;
 	
 	#
 	# Retrieve a movie information by its IMDB code
@@ -73,10 +73,10 @@ use fields qw(	_title
 				_certifications
 				_duration
 				_full_plot
-				full_plot_url
 				_trivia
 				_goofs
 				_awards
+				full_plot_url
 		);
 	
 use vars qw( $VERSION %FIELDS %FILM_CERT $PLOT_URL );
@@ -87,7 +87,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.16';
+		$VERSION = '0.17';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -104,13 +104,14 @@ BEGIN {
 		debug			=> 0,
 		error			=> [],
 		cache_exp		=> '1 h',
+		matched			=> [],
         host			=> 'www.imdb.com',
         query			=> 'title/tt',
         search 			=> 'find?tt=on;mx=20;q=',		
 		status			=> 0,		
 		timeout			=> 10,
 		user_agent		=> 'Mozilla/5.0',
-		_full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
+		full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
 		_also_known_as	=> [],
 	);	
 	
@@ -182,10 +183,21 @@ sub _init {
 	}
 }
 
+=item full_plot_url()
+
+Define a full plot movie url.
+
+=cut
+
 sub full_plot_url {
 	my CLASS_NAME $self = shift;
 	if(@_) { $self->{full_plot_url} = shift }
 	return $self->{full_plot_url}
+}
+
+sub fields {
+	my CLASS_NAME $self = shift;
+	return \%FIELDS;
 }
 
 =back
@@ -637,7 +649,7 @@ sub language {
 
 }
 
-=item aka()
+=item also_known_as()
 
 Retrieve AKA information as array, each element of which is string:
 
@@ -775,24 +787,28 @@ sub certifications {
 
 Return full movie plot. 
 
+	my $full_plot = $film->full_plot();
+
 =cut
+
 sub full_plot {
 	my CLASS_NAME $self = shift;
 
-	$self->_show_message("Getting full plot ...");
-	
+	$self->_show_message("Getting full plot ".$self->code."; url=".$self->full_plot_url." ...", 'DEBUG');
+	#
+	# TODO: move all methods which needed additional connection to the IMDB.com
+	#		to the separate module.
+	#
 	unless($self->{_full_plot}) {
 		my $page;		
 		$page = $self->_cacheObj()->get($self->code.'_plot') if $self->_cache();
 		unless($page) {		
-			my $url = $self->full_plot_url.$self->code().'/plotsummary';
+			my $url = $self->full_plot_url . $self->code() . '/plotsummary';
 
 			$self->_show_message("URL is $url ...", 'DEBUG');
 		
-			$page = get($url);
+			$page = $self->_get_page_from_internet($url);
 			unless($page) {
-				$self->error('Cannot retrieve a page!');
-				$self->_show_message('Cannot retrieve page!', 'CRITICAL');
 				return;
 			}
 			

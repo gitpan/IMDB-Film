@@ -1,5 +1,13 @@
 Revision history for Perl module IMDB::Film
 
+0.17 December 15 2005
+	- moved functionality to get a page via HTTP to the separate method
+		to it for getting of movie full plot;
+	- fixed a bug with retrieving full plot (thanks to halcyon);
+	- fixed a bug related with matched results if there is an only one;
+	- fixed module documentation;
+	- added new tests to cover bugs described above.
+
 0.16 December 14 2005
 	- added retrieving of AKA info (requested by Brano Gerzo);
 	- added retriving of movie trivia;
@@ -13,7 +21,7 @@ Revision history for Perl module IMDB::Film
 	- switched to LWP::Simple from LWP::UserAgent;
 	- added possibility to specify timeout and user agent for HTTP request;
 	- removed a retrieving of a full plot from initialization stage;
-	- improved test suite;	
+	- improved test suite.	
 
 0.14 August 22 2005
 	- fixed a bug with search film by title (reported by Scott D'Aquila 
@@ -55,17 +63,15 @@ Revision history for Perl module IMDB::Film
 	- fixed a bug with using fields.
 
 0.05 Dec 28 2004
-	- added a new method - full_plot to retrieve
-		a full novie plot;
-	- fixed a bug with retrieve a title and production
-		year of movie in case of search by movie title;
+	- added a new method - full_plot to retrieve a full novie plot;
+	- fixed a bug with retrieve a title and production year of movie in case of search by 
+		movie title;
 	- fixed bugs with test.	
 
 0.04 Sep 09 2004
 	- added roles to the retrieving data about cast;
 	- added possibility to retrieve number of votes;
-	- fixed a bug with retrieving directors for movie
-		which doesn't contains writers info.
+	- fixed a bug with retrieving directors for movie which doesn't contains writers info.
 
 0.03 Jul 31 2004
 	- fixed bug with retrieving film information by its title;

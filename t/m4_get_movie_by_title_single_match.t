@@ -1,6 +1,6 @@
 use strict;
 
-use Test::More tests => 1;
+use Test::More tests => 2;
 use IMDB::Film;
 
 
@@ -11,4 +11,4 @@ my $obj = new IMDB::Film(%pars);
 
 $obj = new IMDB::Film(%pars);	
 is($obj->code, '0118880', 'search code');
-
+is(scalar(@{$obj->matched}), 0, 'Matched results');

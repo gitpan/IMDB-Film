@@ -66,7 +66,7 @@ use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.16';
+	$VERSION = '0.17';
 }
 
 {
@@ -74,6 +74,7 @@ BEGIN {
 		cache			=> 0,
 		debug			=> 0,
 		error			=> [],
+		matched			=> [],
 		cache_exp		=> '1 h',
         host			=> 'www.imdb.com',
         query			=> 'name/nm',
@@ -124,6 +125,12 @@ sub _search_person {
 
 	return $self->SUPER::_search_results('\/name\/nm(\d+)', '/a');
 }
+
+sub fields {
+	my CLASS_NAME $self = shift;
+	return \%FIELDS;
+}
+
 
 =back
 

@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.16';
+	$VERSION = '0.17';
 }
 
 use constant FORCED 	=> 1;
@@ -84,7 +84,8 @@ sub new {
 
 =item _init()
 
-Initialize object.
+Initialize object. It gets list of service class properties and assign value to them from input
+parameters or from the hash with default values.
 
 =cut
 sub _init {
@@ -93,8 +94,7 @@ sub _init {
 
 	no warnings 'deprecated';
 
-	#for my $prop ( $self->_get_default_attrs ) {		
-	for my $prop ( keys %FIELDS ) {		
+	for my $prop ( keys %{ $self->fields } ) {		
 		unless($prop =~ /^_/) {
 			$self->{$prop} = defined $args{$prop} ? $args{$prop} : $self->_get_default_value($prop);	
 		}	
@@ -328,16 +328,9 @@ sub _content {
 				$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 					
 				my $url = 'http://'.$self->_host().'/'.
-						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;
-
-				$self->_show_message("URL is [$url]...", 'DEBUG');
-
-				$page = get($url);
-
-				unless($page) {
-					$self->error("Cannot retieve an url: [$url]!");				
-					$self->_show_message("Cannot retrieve url [$url]", 'CRITICAL');				
-				}
+						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;				
+				
+				$page = $self->_get_page_from_internet($url);
 			}
 			
 			$self->_cacheObj()->set($crit, $page, $self->_cache_exp()) if $self->_cache();
@@ -349,6 +342,22 @@ sub _content {
 	}
 	
 	return $self->{content};
+}
+
+sub _get_page_from_internet {
+	my CLASS_NAME $self = shift;
+	my $url = shift;
+	
+	$self->_show_message("URL is [$url]...", 'DEBUG');
+
+	my $page = get($url);
+
+	unless($page) {
+		$self->error("Cannot retieve an url: [$url]!");				
+		$self->_show_message("Cannot retrieve url [$url]", 'CRITICAL');				
+	}
+	
+	return $page;
 }
 
 =item _parser()

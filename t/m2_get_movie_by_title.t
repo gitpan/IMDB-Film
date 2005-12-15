@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use IMDB::Film;
 
@@ -54,3 +54,4 @@ is_deeply($obj->cast, $films{cast}, 'Movie Cast');
 is($obj->language->[0], $films{language}[0], 'Movie Language');
 is($obj->country->[0], $films{country}[0], 'Movie Country');
 is($obj->genres->[0], $films{genres}[0], 'Movie Genre');
+like($obj->full_plot, qr/$films{full_plot}/, 'Movie full plot');
