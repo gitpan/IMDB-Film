@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.17';
+	$VERSION = '0.18';
 }
 
 use constant FORCED 	=> 1;
@@ -414,6 +414,8 @@ Retrieve list of matched films each element of which is hash reference -
 { id => <Film ID>, title => <Film Title>:
 
 	my @matched = @{ $film->matched() };
+
+Note: if movie was matched by title unambiguously it won't be present in this array!	
 
 =cut
 sub matched {

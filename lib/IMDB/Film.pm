@@ -4,7 +4,7 @@ IMDB::Film - OO Perl interface to the movies database IMDB.
 
 =head1 VERSION
 
-IMDB::Film 0.16
+IMDB::Film 0.18
 
 =head1 SYNOPSIS
 
@@ -87,7 +87,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.17';
+		$VERSION = '0.18';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -383,8 +383,8 @@ sub writers {
 			my $text = $parser->get_text();
 			last if $tag->[0] eq '/table';
 			
-			if($tag->[0] eq 'a') {
-				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/ && $text !~ /more/i) {
+			if($tag->[0] eq 'a' && $text !~ /more/i) {
+				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/) {
 					push @writers, {id => $id, name => $text};
 				}	
 			}		
@@ -706,11 +706,11 @@ sub goofs {
 	return $self->{_trivia};
 }
 
-=item avards()
+=item awards()
 
-Retrieve a general information about movie avards like 1 win & 1 nomination:
+Retrieve a general information about movie awards like 1 win & 1 nomination:
 
-	my $avards = $film->avards();
+	my $awards = $film->awards();
 
 =cut	
 sub awards {

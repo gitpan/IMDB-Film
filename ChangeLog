@@ -1,5 +1,10 @@
 Revision history for Perl module IMDB::Film
 
+0.18 December 30 2005
+	- fixed a bug with retrieving ID of writers (thanks to Brano Gerzo for bugreport);
+	- fixed a bug with retrieving a list of writers if there is a link 'more';
+	- fixed a documentation of method 'awards'.
+
 0.17 December 15 2005
 	- moved functionality to get a page via HTTP to the separate method
 		to it for getting of movie full plot;
