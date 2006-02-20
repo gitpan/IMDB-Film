@@ -4,7 +4,7 @@ IMDB::Film - OO Perl interface to the movies database IMDB.
 
 =head1 VERSION
 
-IMDB::Film 0.18
+IMDB::Film 0.19
 
 =head1 SYNOPSIS
 
@@ -87,7 +87,7 @@ use constant USE_CACHE	=> 1;
 use constant DEBUG_MOD	=> 1;
 
 BEGIN {
-		$VERSION = '0.18';
+		$VERSION = '0.19';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -306,13 +306,14 @@ sub cover {
 		my ($parser) = $self->_parser(FORCED);
 		my ($cover);
 
+		my $title = $self->title;
 		while(my $img_tag = $parser->get_tag('img')) {
 			$img_tag->[1]{alt} ||= '';	
-			if($img_tag->[1]{alt} =~ /cover/i) {
+			if($img_tag->[1]{alt} =~ /$title/i) {
 				$cover = $img_tag->[1]{src};
 				last;
 			}
-			last if $img_tag->[1]{alt} =~ /^no poster/i;
+			last if $img_tag->[1]{alt} =~ /^poster not submitted/i;
 		}
 		$self->{_cover} = $cover;
 	}	
@@ -537,7 +538,8 @@ sub cast {
 		my $parser = $self->_parser(FORCED);
 	
 		while($tag = $parser->get_tag('b')) {
-			last if $parser->get_text =~ /^(cast overview|credited cast|complete credited cast)/i;
+			next unless (exists  $tag->[1]{class} and $tag->[1]{class} eq 'blackcatheader');
+			last if $parser->get_text =~ /^(cast overview|credited cast|(?:series )?complete credited cast)/i;
 		}
 		
 		while($tag = $parser->get_tag('a')) {

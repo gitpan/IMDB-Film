@@ -1,5 +1,12 @@
 Revision history for Perl module IMDB::Film
 
+0.19 January 16 2006
+	- fixed a bug related with search by movie title contained some special symbols such "&" 
+		(thanks to Peter Backman);
+	- fixed a bug with retrieving a movie cover (thanks to Len Kranendonk);
+	- fixed a bug with retrieving a list of cast of TV series (thanks to Bas);
+	- added prerequest module Digest::SHA1 (thanks to CPAN testers).
+
 0.18 December 30 2005
 	- fixed a bug with retrieving ID of writers (thanks to Brano Gerzo for bugreport);
 	- fixed a bug with retrieving a list of writers if there is a link 'more';

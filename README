@@ -33,6 +33,10 @@ Also, you can use CPAN shell:
 	> perl -MCPAN -e shell
 	cpan> install IMDB::Film
 
+or use command 'cpan':
+
+	> cpan install IMDB::Film
+
 DEPENDENCIES
 
 This module requires these other modules and libraries:

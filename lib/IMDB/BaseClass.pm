@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD);
 
 BEGIN {
-	$VERSION = '0.18';
+	$VERSION = '0.19';
 }
 
 use constant FORCED 	=> 1;
