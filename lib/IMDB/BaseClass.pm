@@ -24,14 +24,25 @@ use Carp;
 
 use Data::Dumper;
 
-use vars qw($VERSION %FIELDS $AUTOLOAD);
+use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.19';
+	$VERSION = '0.20';
+
+	%STATUS_DESCR = (
+		0 => 'Empty',
+		1 => 'Filed',
+		2 => 'Fresh',
+		3 => 'Cached',
+	);	
 }
 
-use constant FORCED 	=> 1;
-use constant CLASS_NAME => 'IMDB::BaseClass';
+use constant FORCED 		=> 1;
+use constant CLASS_NAME 	=> 'IMDB::BaseClass';
+
+use constant FROM_FILE		=> 1;
+use constant FROM_INTERNET	=> 2;
+use constant FROM_CACHE		=> 3;
 
 use fields qw(	content
 				parser
@@ -44,6 +55,7 @@ use fields qw(	content
 				search
 				cacheObj
 				cache_exp
+				cache_root
 				debug
 				status
 				file
@@ -100,7 +112,10 @@ sub _init {
 		}	
 	}
 	
-	$self->_cacheObj( new Cache::FileCache( { default_expires_in => $self->_cache_exp() } ) );
+	if($self->_cache()) {
+		$self->_cacheObj( new Cache::FileCache( { 	default_expires_in 	=> $self->_cache_exp(), 
+													cache_root 			=> $self->_cache_root } ) );
+	}												
 	
 	if($self->_proxy) { $ua->proxy(['http', 'ftp'], $self->_proxy()) }
 	else { $ua->env_proxy() }
@@ -222,6 +237,15 @@ sub _cache_exp {
 	return $self->{cache_exp}
 }
 
+sub _cache_root {
+	my CLASS_NAME $self = shift;
+	$self->{cache_root} = shift if @_;
+
+	$self->_show_message("CACHE ROOT is " . $self->{cache_root}, 'DEBUG');
+	
+	return $self->{cache_root};
+}
+
 sub _show_message {
 	my CLASS_NAME $self = shift;
 	my $msg = shift || 'Unknown error';
@@ -324,6 +348,7 @@ sub _content {
 				open FILE, $crit or die "Cannot open off-line IMDB file: $!!";
 				$page = <FILE>;
 				close FILE;
+				$self->status(FROM_FILE);
 			} else {
 				$self->_show_message("Retrieving page from internet ...", 'DEBUG');
 					
@@ -331,11 +356,13 @@ sub _content {
 						( $crit =~ /^\d+$/ ? $self->_query() : $self->_search() ).$crit;				
 				
 				$page = $self->_get_page_from_internet($url);
+				$self->status(FROM_INTERNET);
 			}
 			
 			$self->_cacheObj()->set($crit, $page, $self->_cache_exp()) if $self->_cache();
 		} else {
 			$self->_show_message("Retrieving page from cache ...", 'DEBUG');
+			$self->status(FROM_CACHE);
 		}
 		
 		$self->{content} = \$page;
@@ -427,7 +454,12 @@ sub matched {
 sub status {
 	my CLASS_NAME $self = shift;
 	if(@_) { $self->{status} = shift }
-	return $self->{status}
+	return $self->{status};
+}
+
+sub status_descr {
+	my CLASS_NAME $self = shift;
+	return $STATUS_DESCR{$self->{status}} || $self->{status};	
 }
 
 sub retrieve_code {

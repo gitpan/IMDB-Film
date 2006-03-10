@@ -1,5 +1,10 @@
 Revision history for Perl module IMDB::Film
 
+0.20 March 10 2006
+	- added possibility to specify a path for cached data (thanks to Brano Gerzo);
+	- added new statuses to separate objects retrieved from internet, cache or file;
+	- added test to check cache functionality.
+
 0.19 January 16 2006
 	- fixed a bug related with search by movie title contained some special symbols such "&" 
 		(thanks to Peter Backman);

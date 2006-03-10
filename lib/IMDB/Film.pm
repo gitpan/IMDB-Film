@@ -81,13 +81,14 @@ use fields qw(	_title
 	
 use vars qw( $VERSION %FIELDS %FILM_CERT $PLOT_URL );
 
-use constant CLASS_NAME => 'IMDB::Film';
-use constant FORCED		=> 1;
-use constant USE_CACHE	=> 1;
-use constant DEBUG_MOD	=> 1;
+use constant CLASS_NAME 	=> 'IMDB::Film';
+use constant FORCED			=> 1;
+use constant USE_CACHE		=> 1;
+use constant DEBUG_MOD		=> 1;
+use constant EMPTY_OBJECT	=> 0;
 
 BEGIN {
-		$VERSION = '0.19';
+		$VERSION = '0.20';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -104,6 +105,7 @@ BEGIN {
 		debug			=> 0,
 		error			=> [],
 		cache_exp		=> '1 h',
+		cache_root		=> '/tmp',
 		matched			=> [],
         host			=> 'www.imdb.com',
         query			=> 'title/tt',
@@ -122,7 +124,7 @@ BEGIN {
 	}
 }
 
-=head2 Constructor and initialization
+=head2 Constructor
 
 =over 4
 
@@ -139,21 +141,6 @@ or
 or 
 	my $imdb = new IMDB::Film(crit => <HTML file>);
 
-Also, you can specify following optional parameters:
-	
-- proxy - define proxy server name and port;
-- debug	- switch on debug mode. Can be 0 or 1 (0 by default);
-- cache - cache or not of content retrieved pages. Can be 0 or 1 (0 by default);
-- timeout - timeout for HTTP connection in seconds (10 sec by default);
-- user_agent - specify an user agent ('Mozilla/5.0' by default).
-
-	my $imdb = new IMDB::Film(	crit		=> 'Troy',
-								user_agent	=> 'Opera/8.x',
-								timeout		=> 2,
-								debug		=> 1,
-								cache		=> 1
-							);
-							
 For more infomation about base methods refer to IMDB::BaseClass.
 
 =item _init()
@@ -172,10 +159,11 @@ sub _init {
 	$self->title(FORCED);
 	
 	unless($self->title) {
-		$self->status(0);
+		$self->status(EMPTY_OBJECT);
 		$self->error('Not Found');
 		return;
-	} else { $self->status(1) }
+	} 
+	#else { $self->status(1) }
 
 	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
@@ -183,9 +171,74 @@ sub _init {
 	}
 }
 
-=item full_plot_url()
+=back
 
-Define a full plot movie url.
+=head2 Options
+
+=over 4
+
+=item proxy
+
+defines proxy server name and port:
+
+	proxy => 'http://proxy.myhost.com:80'
+
+By default object tries to get proxy from environment
+
+=item debug
+
+switches on debug mode to display useful debug messages. Can be 0 or 1 (0 by default)
+
+=item cache
+
+indicates use cache or not to store retrieved page content. Can be 0 or 1 (0 by default)
+
+=item cache_root
+
+specifies a directory to store cache data. By default it use /tmp/FileCache for *NIX OS
+
+=item cache_exp
+
+specifies an expiration time for cache. By default, it's 1 hour
+
+=item timeout
+
+specifies a timeout for HTTP connection in seconds (10 sec by default)
+
+=item user_agent 
+
+specifies an user agent for request ('Mozilla/5.0' by default)
+
+=item full_plot_url
+
+specifies a full plot url for specified movie
+
+=item host
+
+specifies a host name for IMDB site. By default it's www.imdb.com
+
+=item query
+
+specifies a query string to get specified movie by its ID. By defualt it's 'title/tt'
+
+=item search
+
+specifies query string to make a search movie by its title. By default it's  'find?tt=on;mx=20;q='
+
+
+Example:
+
+	my $imdb = new IMDB::Film(	crit		=> 'Troy',
+								user_agent	=> 'Opera/8.x',
+								timeout		=> 2,
+								debug		=> 1,
+								cache		=> 1,
+								cache_root	=> '/tmp/imdb_cache',
+								cache_exp	=> '1 d',
+							);
+
+It'll create an object with critery 'Troy', user agent 'Opera', timeout 2 seconds, debug mode on,
+using cache with directory '/tmp/imdb_cache' and expiration time in 1 day.
 
 =cut
 
@@ -244,6 +297,26 @@ sub _get_simple_prop {
 =head2 Object Public Methods
 
 =over 4
+
+=item status()
+
+Indicates a status of IMDB object:
+
+0 - empty object;
+1 - loaded from file;
+2 - loaded from internet request;
+3 - loaded from cache.
+
+=item status_descr()
+
+Return a description for IMDB object status. Can be 'Empty', 'Filed', 'Fresh' and 'Cached':
+
+
+	if($film->status) {
+		print "This is a " . $film->status_descr . " object!";
+	} else {
+		die "Cannot retrieve IMDB object!";
+	}
 
 =item title()
 
