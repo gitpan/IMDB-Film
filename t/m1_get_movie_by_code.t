@@ -15,7 +15,7 @@ my %films = (
 		country 		=> [qw(USA Malta UK)],
 		language		=> [qw(English)],
 		plot			=> qq{An adaptation of Homer's great epic, the film follows the assault on Troy by the united Greek forces and chronicles the fates of the men involved.},
-		full_plot		=> qq{In the year 1193 B.C., Paris, a prince of Troy woos Helen, Queen of Sparta, away from her husband, Menelaus, setting the kingdoms of Mycenae Greece at war with Troy. The Greeks sail to Troy and lay siege. Achilles was the greatest hero among the Greeks, while Hector, the eldest son of Priam, King of Troy, embodied the hopes of the people of his city.},
+		full_plot		=> qq{It is the year 1250 B.C. during the late Bronze age. Two emerging nations begin to clash after Paris, the Trojan Prince convinces Helen, Queen of Sparta, to leave her husband Menelaus, and sail with him back to Troy. After Menelaus finds out that his wife was taken by the Trojans, he asks his brother Agamemmnom to help him get her back. Agamemmnon sees this as an opportunity for power. So they set off with 1000 ships holding 50,000 Greeks to Troy. With the help of Achilles, the Greeks are able to fight the never before defeated Trojans. But they come to a stop by Hector, Prince of Troy. Thw whole movie shows their battle struggles, and the foreshadowing of fate in this remake by Wolfgang Peterson of Homer's "The Iliad."},
 		cover			=> qq{http://ia.imdb.com/media/imdb/01/I/21/65/48m.jpg},
 		cast			=> [{ 	id => '0002103', name => 'Julian Glover', role => 'Triopas'},	
 							{	id => '0004051', name => 'Brian Cox', role => 'Agamemnon'},	

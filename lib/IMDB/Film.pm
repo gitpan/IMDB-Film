@@ -76,6 +76,7 @@ use fields qw(	_title
 				_trivia
 				_goofs
 				_awards
+				_official_sites
 				full_plot_url
 		);
 	
@@ -88,7 +89,7 @@ use constant DEBUG_MOD		=> 1;
 use constant EMPTY_OBJECT	=> 0;
 
 BEGIN {
-		$VERSION = '0.20';
+		$VERSION = '0.21';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -115,6 +116,7 @@ BEGIN {
 		user_agent		=> 'Mozilla/5.0',
 		full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
 		_also_known_as	=> [],
+		_official_sites	=> [],
 	);	
 	
 	sub _get_default_attrs { keys %_defaults }		
@@ -200,6 +202,10 @@ specifies a directory to store cache data. By default it use /tmp/FileCache for 
 =item cache_exp
 
 specifies an expiration time for cache. By default, it's 1 hour
+
+=item clear_cache
+
+indicates clear cached data before get request to IMDB.com or not
 
 =item timeout
 
@@ -876,7 +882,7 @@ sub full_plot {
 	#
 	unless($self->{_full_plot}) {
 		my $page;		
-		$page = $self->_cacheObj()->get($self->code.'_plot') if $self->_cache();
+		$page = $self->_cacheObj->get($self->code.'_plot') if $self->_cache;
 		unless($page) {		
 			my $url = $self->full_plot_url . $self->code() . '/plotsummary';
 
@@ -887,8 +893,7 @@ sub full_plot {
 				return;
 			}
 			
-			$self->_cacheObj()->set($self->code.'_plot', $page, $self->_cache_exp()) 
-																if $self->_cache();
+			$self->_cacheObj->set($self->code.'_plot', $page, $self->_cache_exp) if $self->_cache;
 		}	
 
 		my $parser = $self->_parser(FORCED, \$page);
@@ -907,6 +912,48 @@ sub full_plot {
 	return $self->{_full_plot};
 }
 
+=item official_sites()
+
+Returns a list of official sites of specified movie as array reference:
+	
+	my $sites = $film->official_sites();
+	for(@$sites) {
+		my($url, $title) = each %$_;
+		print "Site name - $title; url - $url\n";
+	}
+
+=cut
+sub official_sites {
+	my CLASS_NAME $self = shift;
+
+	unless($self->{_official_sites}) {
+		my $page;
+		$page = $self->_cacheObj->get($self->code . '_sites') if $self->_cache;
+
+		unless($page) {
+			my $url = "http://". $self->{host} . "/" . $self->{query} . $self->code . "/officialsites";
+			$self->_show_message("URL for sites is $url ...", 'DEBUG');
+
+			$page = $self->_get_page_from_internet($url);
+			
+			$self->_cacheObj->set($self->code.'_sites', $page, $self->_cache_exp) if $self->_cache;
+		}
+	
+
+		my $parser = $self->_parser(FORCED, \$page);
+		while(my $tag = $parser->get_tag('h1')) {
+			last if $parser->get_trimmed_text =~ /^Official sites for/i;
+		}
+
+		while(my $tag = $parser->get_tag()) {
+			push @{ $self->{_official_sites} }, { $tag->[1]->{href} => $parser->get_text() } if $tag->[0] eq 'a' && $tag->[1]->{href} !~ /sections/i;
+
+			last if $tag->[0] eq '/ol' or $tag->[0] eq 'hr';
+		}
+	}	
+
+	return $self->{_official_sites};
+}
 
 =back
 

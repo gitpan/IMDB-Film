@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.20';
+	$VERSION = '0.21';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -56,6 +56,7 @@ use fields qw(	content
 				cacheObj
 				cache_exp
 				cache_root
+				clear_cache
 				debug
 				status
 				file
@@ -113,8 +114,10 @@ sub _init {
 	}
 	
 	if($self->_cache()) {
-		$self->_cacheObj( new Cache::FileCache( { 	default_expires_in 	=> $self->_cache_exp(), 
+		$self->_cacheObj( new Cache::FileCache( { 	default_expires_in 	=> $self->_cache_exp, 
 													cache_root 			=> $self->_cache_root } ) );
+
+		$self->_cacheObj->clear() if $self->_clear_cache;											
 	}												
 	
 	if($self->_proxy) { $ua->proxy(['http', 'ftp'], $self->_proxy()) }
@@ -208,6 +211,19 @@ sub _cache {
 	my CLASS_NAME $self = shift;
 	if(@_) { $self->{cache} = shift }
 	return $self->{cache}
+}
+
+=item _clear_cache
+
+Store flag clear_cache which is indicated clear exisisting cache or not (false by default):
+
+	my $imdb = new IMDB::Film(code => 111111, cache => 1, clear_cache => 1);
+
+=cut
+sub _clear_cache {
+	my CLASS_NAME $self = shift;
+	if($_) { $self->{clear_cache} = shift }
+	return $self->{clear_cache};
 }
 
 =item _cacheObj()

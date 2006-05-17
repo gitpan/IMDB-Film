@@ -1,5 +1,14 @@
 Revision history for Perl module IMDB::Film
 
+0.21 May 17 2006
+	- added retrieving official site urls for specified movie;
+	- added possibility to clean cached data;
+	- added new test for official sites;
+	- fixed a bug with retrieving a filmography of specified movie person (thanks
+		to Przemek Klys);
+	- fixed a bug with test of full plot of movie;
+	- fixed a bug with test of movie trivia.
+
 0.20 March 10 2006
 	- added possibility to specify a path for cached data (thanks to Brano Gerzo);
 	- added new statuses to separate objects retrieved from internet, cache or file;

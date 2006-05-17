@@ -66,7 +66,7 @@ use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
 
 BEGIN {
-	$VERSION = '0.20';
+	$VERSION = '0.21';
 }
 
 {
@@ -271,18 +271,19 @@ structure:
 
 	__DATA__
 	$fg = [
-		{ 	title 	=> 'movie title', 
-			role 	=> 'person role', 
-			year 	=> 'year of movie production',
-			code	=> 'IMDB code of movie',	
-		}
+			{ 	title 	=> 'movie title', 
+				role 	=> 'person role', 
+				year 	=> 'year of movie production',
+				code	=> 'IMDB code of movie',	
+			}
 	];
 
 =cut
 sub filmography {
 	my CLASS_NAME $self = shift;
-	if(!defined $self->{'_filmography'}) {
-		my $films;
+	
+	my $films;
+	if(!$self->{'_filmography'}) {
 		my $parser = $self->_parser(FORCED);
 		while(my $tag = $parser->get_tag('b')) {
 			my $text = $parser->get_trimmed_text('b', '/b');
@@ -291,25 +292,29 @@ sub filmography {
 		}	
 
 		while(my $tag = $parser->get_tag()) {
-			
-			last if $tag->[0] eq 'p';
+		
+			last if $tag->[0] eq '/ol';
 			
 			if($tag->[0] eq 'a' && $tag->[1]{href} =~ m!title\/tt(\d+)!) {
 				my $title = $parser->get_text();
-				my $text = $parser->get_trimmed_text('a', '/li');
+				my $text = $parser->get_trimmed_text('br', '/li');
+				
 				my $code = $1;
-				my($year, $role) = $text =~ m!\((\d+)\)\s.+?\.+\s(.*)!;
+				my($year, $role) = $text =~ m!\((\d+)\)\s.+\.+\s(.+)!;
 				push @$films, {	title 	=> $title, 
 								code 	=> $code,
 								year	=> $year,
 								role	=> $role,
 							};
-			}	
+			} 
 		}
 
 		$self->{'_filmography'} = $films;
-	}
 
+	} else {
+		$self->_show_message("filmography defined!", 'DEBUG');
+	}
+	
 	return $self->{'_filmography'};
 }
 

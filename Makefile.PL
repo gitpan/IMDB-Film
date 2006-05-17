@@ -21,7 +21,7 @@ WriteMakefile(
 							'Cache::FileCache'	=> 0, 
 							'Carp'				=> 0,
 							'Error'				=> 0,
-							'Digest::SHA1'		=> '0'
+							'Digest::SHA1'		=> 0,
 					}, 
 					
     test           => {TESTS => $tests},
