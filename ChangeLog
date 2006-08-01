@@ -1,5 +1,13 @@
 Revision history for Perl module IMDB::Film
 
+0.22 August 1 2006
+	- modified a procedure of parsing cast (thanks to drmarker for contibution);
+	- removed a request for retrieving of movie official sites from the base initialization
+		procedure (thanks to Danial Pearce);
+	- fixed a bug with parsing movie title if the title contains some special symbols such '*' 
+		(thanks to Matthew Bone for bugreport);
+	- fixed a bug with retrieving a cover if it isn't uploaded (Brano Gerzo).	
+
 0.21 May 17 2006
 	- added retrieving official site urls for specified movie;
 	- added possibility to clean cached data;

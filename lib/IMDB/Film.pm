@@ -4,7 +4,7 @@ IMDB::Film - OO Perl interface to the movies database IMDB.
 
 =head1 VERSION
 
-IMDB::Film 0.19
+IMDB::Film 0.22
 
 =head1 SYNOPSIS
 
@@ -89,7 +89,7 @@ use constant DEBUG_MOD		=> 1;
 use constant EMPTY_OBJECT	=> 0;
 
 BEGIN {
-		$VERSION = '0.21';
+		$VERSION = '0.22';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -167,7 +167,7 @@ sub _init {
 	} 
 	#else { $self->status(1) }
 
-	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot)$/ } sort keys %FIELDS) {
+	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot|_official_sites)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
 		$self->$prop(FORCED);
 	}
@@ -349,9 +349,9 @@ sub title {
 		if($title) {
 			$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
 														unless $self->code;
-		
-			($self->{_title}, $self->{_year}) = 
-										$title =~ m!(.*?)\s+\((\d{4}).*?\)!;
+			$title =~ s/\*/\\*/g;
+
+			($self->{_title}, $self->{_year}) = $title =~ m!(.*?)\s+\((\d{4}).*?\)!;
 		}	
 	}	
 	
@@ -388,11 +388,13 @@ sub cover {
 		my $title = $self->title;
 		while(my $img_tag = $parser->get_tag('img')) {
 			$img_tag->[1]{alt} ||= '';	
-			if($img_tag->[1]{alt} =~ /$title/i) {
+		
+			last if $img_tag->[1]{alt} =~ /^poster not submitted/i;
+
+			if($img_tag->[1]{alt} =~ /^$title$/i) {
 				$cover = $img_tag->[1]{src};
 				last;
 			}
-			last if $img_tag->[1]{alt} =~ /^poster not submitted/i;
 		}
 		$self->{_cover} = $cover;
 	}	
@@ -623,7 +625,8 @@ sub cast {
 		
 		while($tag = $parser->get_tag('a')) {
 			last if $tag->[1]{href} =~ /fullcredits/i;
-			if($tag->[1]{href} && $tag->[1]{href} =~ m!/name/nm(\d+?)/!) {
+			#if($tag->[1]{href} && $tag->[1]{href} =~ m!/name/nm(\d+?)/!) {
+			if($tag->[1]{href} && $tag->[1]{href} =~ m#(?<!tinyhead)/name/nm(\d+?)/#) {
 				$person = $parser->get_text;
 				$id = $1;	
 				my $text = $parser->get_trimmed_text('a', '/tr');
@@ -914,7 +917,8 @@ sub full_plot {
 
 =item official_sites()
 
-Returns a list of official sites of specified movie as array reference:
+Returns a list of official sites of specified movie as array reference which contains hashes
+with site information - URL => Site Title:
 	
 	my $sites = $film->official_sites();
 	for(@$sites) {
