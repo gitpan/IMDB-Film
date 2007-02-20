@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.22';
+	$VERSION = '0.24';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',

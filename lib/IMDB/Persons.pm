@@ -64,9 +64,10 @@ use vars qw($VERSION %FIELDS);
 
 use constant FORCED 	=> 1;
 use constant CLASS_NAME => 'IMDB::Persons';
+use constant MAIN_TAG	=> 'h5';
 
 BEGIN {
-	$VERSION = '0.22';
+	$VERSION = '0.24';
 }
 
 {
@@ -162,8 +163,7 @@ sub name {
 
 		if($title) {		
 			$self->status(1);
-			$self->retrieve_code($parser, 'pro.imdb.com/name/nm(\d+)') 
-															unless $self->code;
+			$self->retrieve_code($parser, 'pro.imdb.com/name/nm(\d+)') unless $self->code;
 		} else {
 			$self->status(0);
 			$self->error('Not Found');
@@ -187,13 +187,13 @@ sub mini_bio {
 	if(!defined $self->{_mini_bio}) {
 		my $parser = $self->_parser(FORCED);
 		my $tag;
-		while( $tag = $parser->get_tag('div') ) {
+		while( $tag = $parser->get_tag(MAIN_TAG) ) {
 			last if $parser->get_text() =~ /Mini biography/i;
 		}
 		
-		$tag = $parser->get_tag('dd');
+		#$tag = $parser->get_tag('dd');
 		
-		$self->{'_mini_bio'} = $parser->get_trimmed_text();
+		$self->{'_mini_bio'} = $parser->get_trimmed_text(MAIN_TAG, 'a');
 	}
 	return $self->{'_mini_bio'};
 }
@@ -210,18 +210,27 @@ sub date_of_birth {
 	my CLASS_NAME $self = shift;
 	if(!defined $self->{'_date_of_birth'}) {
 		my $parser = $self->_parser(FORCED);
-		my $tag;
-		while($tag = $parser->get_tag('div')) {
-			last if $parser->get_text =~ /Date of birth/i;
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
+			my $text = $parser->get_text;
+			last if $text =~ /Date of birth/i;
 		}
 
-		$tag = $parser->get_tag('dd');
-		my $text = $parser->get_trimmed_text('dd', 'dt');
-		$self->_show_message("date_of_birth: $text", 'DEBUG');
+		my $date = '';
+		my $year = '';
+		my $place = '';
+		while(my $tag = $parser->get_tag('a')) {
+			last if !$tag->[1]->{href} or $tag->[1]->{href} !~ /(OnThisDay|BornInYear|BornWhere)/i;
 
-		my($date, $place) = $text =~ /^(\d+.*?\d+)\s(.*)/;
+			my $text = $parser->get_text();
+			next unless $text;
+			SWITCH: for($tag->[1]->{href}) {
+				/OnThisDay/i && do { $date = $text; last SWITCH; };
+				/BornInYear/i && do { $year = $text; last SWITCH; };
+				/BornWhere/i && do { $place = $text; last SWITCH; };
+			}			
+		}
 
-		$self->{'_date_of_birth'} = {date => $date, place => $place};
+		$self->{'_date_of_birth'} = {date => "$date $year", place => $place};
 	} 
 
 	return $self->{'_date_of_birth'}{'date'};
@@ -285,17 +294,16 @@ sub filmography {
 	my $films;
 	if(!$self->{'_filmography'}) {
 		my $parser = $self->_parser(FORCED);
-		while(my $tag = $parser->get_tag('b')) {
-			my $text = $parser->get_trimmed_text('b', '/b');
+		while(my $tag = $parser->get_tag('img')) {
 
-			last if $text =~ /filmography/i;
+			last if $tag->[1]->{src} && $tag->[1]->{src} =~ /filmography/i;
 		}	
 
 		while(my $tag = $parser->get_tag()) {
 		
 			last if $tag->[0] eq '/ol';
 			
-			if($tag->[0] eq 'a' && $tag->[1]{href} =~ m!title\/tt(\d+)!) {
+			if($tag->[0] eq 'a' && $tag->[1]->{href} && $tag->[1]{href} =~ m!title\/tt(\d+)!) {
 				my $title = $parser->get_text();
 				my $text = $parser->get_trimmed_text('br', '/li');
 				

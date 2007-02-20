@@ -2,10 +2,6 @@
 
 IMDB::Film - OO Perl interface to the movies database IMDB.
 
-=head1 VERSION
-
-IMDB::Film 0.22
-
 =head1 SYNOPSIS
 
 	use IMDB::Film;
@@ -77,6 +73,7 @@ use fields qw(	_title
 				_goofs
 				_awards
 				_official_sites
+				_release_dates
 				full_plot_url
 		);
 	
@@ -87,9 +84,10 @@ use constant FORCED			=> 1;
 use constant USE_CACHE		=> 1;
 use constant DEBUG_MOD		=> 1;
 use constant EMPTY_OBJECT	=> 0;
+use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.22';
+		$VERSION = '0.24';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -117,6 +115,7 @@ BEGIN {
 		full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
 		_also_known_as	=> [],
 		_official_sites	=> [],
+		_release_dates	=> [],
 	);	
 	
 	sub _get_default_attrs { keys %_defaults }		
@@ -165,9 +164,8 @@ sub _init {
 		$self->error('Not Found');
 		return;
 	} 
-	#else { $self->status(1) }
 
-	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot|_official_sites)$/ } sort keys %FIELDS) {
+	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot|_official_sites|_release_dates)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
 		$self->$prop(FORCED);
 	}
@@ -287,12 +285,12 @@ sub _get_simple_prop {
 	
 	my $parser = $self->_parser(FORCED);
 
-	while(my $tag = $parser->get_tag('b')) {
+	while(my $tag = $parser->get_tag(MAIN_TAG)) {
 		my $text = $parser->get_text;
 		last if $text =~ /$target/i;
 	}
 
-	my $res = $parser->get_trimmed_text('b', 'a');
+	my $res = $parser->get_trimmed_text(MAIN_TAG, 'a');
 	
 	return $res;
 }
@@ -385,11 +383,11 @@ sub cover {
 		my ($parser) = $self->_parser(FORCED);
 		my ($cover);
 
-		my $title = $self->title;
+		my $title = quotemeta($self->title);
 		while(my $img_tag = $parser->get_tag('img')) {
 			$img_tag->[1]{alt} ||= '';	
 		
-			last if $img_tag->[1]{alt} =~ /^poster not submitted/i;
+			last if $img_tag->[1]{alt} =~ /^poster not submitted/i;			
 
 			if($img_tag->[1]{alt} =~ /^$title$/i) {
 				$cover = $img_tag->[1]{src};
@@ -418,7 +416,7 @@ sub directors {
 		my ($parser) = $self->_parser(FORCED);
 		my (@directors, $tag);
 	
-		while($tag = $parser->get_tag('b')) {
+		while($tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /^directed/i;
 		}
 
@@ -457,7 +455,7 @@ sub writers {
 		my ($parser) = $self->_parser(FORCED);
 		my (@writers, $tag);
 		
-		while($tag = $parser->get_tag('b')) {
+		while($tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /^writing/i;
 		}
 			
@@ -493,7 +491,7 @@ sub genres {
 		my ($parser) = $self->_parser(FORCED);
 		my (@genres);
 		
-		while(my $tag = $parser->get_tag('b')) {
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /^genre/i;
 		}
 
@@ -524,11 +522,11 @@ sub tagline {
 	if($forced) {
 		my ($parser) = $self->_parser(FORCED);		
 
-		while(my $tag = $parser->get_tag('b')) {
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
 			last if($parser->get_text =~ /tagline/i);
 		}	
 				
-		$self->{_tagline} = $parser->get_trimmed_text('b', 'a');
+		$self->{_tagline} = $parser->get_trimmed_text(MAIN_TAG, 'a');
 	}	
 
 	return $self->{_tagline};
@@ -550,11 +548,11 @@ sub plot {
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
 
-		while(my $tag = $parser->get_tag('b')) {
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /^plot/i;
 		}
 
-		$self->{_plot} = $parser->get_trimmed_text('b', 'a');
+		$self->{_plot} = $parser->get_trimmed_text(MAIN_TAG, 'a');
 
 		my $tag = $parser->get_tag('a');
 	}	
@@ -582,7 +580,7 @@ sub rating {
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
 	
-		while(my $tag = $parser->get_tag('b')) {
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /rating/i;
 		}
 
@@ -618,9 +616,11 @@ sub cast {
 		my (@cast, $tag, $person, $id, $role);
 		my $parser = $self->_parser(FORCED);
 	
-		while($tag = $parser->get_tag('b')) {
-			next unless (exists  $tag->[1]{class} and $tag->[1]{class} eq 'blackcatheader');
-			last if $parser->get_text =~ /^(cast overview|credited cast|(?:series )?complete credited cast)/i;
+		#while($tag = $parser->get_tag(MAIN_TAG)) {
+		while($tag = $parser->get_tag('img')) {
+			#next unless (exists  $tag->[1]{class} and $tag->[1]{class} eq 'blackcatheader');
+			#last if $parser->get_text =~ /^(cast overview|credited cast|(?:series )?complete credited cast)/i;
+			last if $tag->[1]->{src} =~ /cast/i;
 		}
 		
 		while($tag = $parser->get_tag('a')) {
@@ -655,12 +655,12 @@ sub duration {
 	if($forced) {
 
 		my $parser = $self->_parser(FORCED);
-		while(my $tag = $parser->get_tag('b')) {
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
 			my $text = $parser->get_text();
 			last if $text =~ /runtime:/i;
 		}	
 		
-		$self->{_duration} = $parser->get_trimmed_text('b', 'br');
+		$self->{_duration} = $parser->get_trimmed_text(MAIN_TAG, 'br');
 	}
 
 	return $self->{_duration};
@@ -679,14 +679,14 @@ sub country {
 	
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
-		while (my $tag = $parser->get_tag('b')) {
+		while (my $tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /country/i;
 		}	
 
 		my (@countries);
 		while(my $tag = $parser->get_tag()) {
 			
-			if( $tag->[0] eq 'a' && $tag->[1]{href} =~ /countries/i ) {
+			if( $tag->[0] eq 'a' && $tag->[1]{href} && $tag->[1]{href} =~ /countries/i ) {
 				push @countries, $parser->get_text();
 			} 
 			
@@ -713,13 +713,13 @@ sub language {
 	if($forced) {
 		my (@languages, $tag);
 		my $parser = $self->_parser(FORCED);
-		while ($tag = $parser->get_tag('b')) {
+		while ($tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /language/i;
 		}	
 
 		while($tag = $parser->get_tag()) {
 			
-			if( $tag->[0] eq 'a' && $tag->[1]{href} =~ /languages/i ) {
+			if( $tag->[0] eq 'a' && $tag->[1]{href} && $tag->[1]{href} =~ /languages/i ) {
 				push @languages, $parser->get_text();
 			} 
 			
@@ -747,12 +747,12 @@ sub also_known_as {
 	unless($self->{_also_known_as}) {
 		my $parser = $self->_parser(FORCED);
 
-        while(my $tag = $parser->get_tag('b')) {
+        while(my $tag = $parser->get_tag(MAIN_TAG)) {
         	my $text = $parser->get_text();
             last if $text =~ /^(aka|also known as)/i;
         }
 
-		my $aka = $parser->get_trimmed_text('b', 'b');
+		my $aka = $parser->get_trimmed_text(MAIN_TAG, 'div');
 
 		my @aka = $aka =~ /(.+?\)(?:\s\(.+?\))?)\s?/g;
 
@@ -945,12 +945,15 @@ sub official_sites {
 	
 
 		my $parser = $self->_parser(FORCED, \$page);
-		while(my $tag = $parser->get_tag('h1')) {
-			last if $parser->get_trimmed_text =~ /^Official sites for/i;
+		while(my $tag = $parser->get_tag('div')) {
+			last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15content';
 		}
 
 		while(my $tag = $parser->get_tag()) {
-			push @{ $self->{_official_sites} }, { $tag->[1]->{href} => $parser->get_text() } if $tag->[0] eq 'a' && $tag->[1]->{href} !~ /sections/i;
+			my $text = $parser->get_text();
+			if($tag->[0] eq 'a' && $tag->[1]->{href} !~ /sections/i) {
+				push @{ $self->{_official_sites} }, { $tag->[1]->{href} => $text };
+			}	
 
 			last if $tag->[0] eq '/ol' or $tag->[0] eq 'hr';
 		}
@@ -959,7 +962,54 @@ sub official_sites {
 	return $self->{_official_sites};
 }
 
+=item release_dates()
+
+Returns a list of release dates of specified movie as array reference:
+	
+	my $sites = $film->release_dates();
+	for(@$sites) {
+		my($country, $date) = each %$_;
+		print "Country - $country; release date - $date\n";
+	}
+
+=cut
+sub release_dates {
+	my CLASS_NAME $self = shift;
+
+	unless($self->{_release_dates}) {
+		my $page;
+		$page = $self->_cacheObj->get($self->code . '_dates') if $self->_cache;
+
+		unless($page) {
+			my $url = "http://". $self->{host} . "/" . $self->{query} .  $self->code . "/releaseinfo";
+			$self->_show_message("URL for sites is $url ...", 'DEBUG');
+
+			$page = $self->_get_page_from_internet($url);
+			$self->_cacheObj->set($self->code.'_dates', $page, $self->_cache_exp) if $self->_cache;
+		}
+
+		my $parser = $self->_parser(FORCED, \$page);
+		while(my $tag = $parser->get_tag('div')) {
+			last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15content';
+		}
+
+		while(my $tag = $parser->get_tag()) {
+			last if $tag->[0] eq '/table';
+			next unless $tag->[0] eq 'a' and $tag->[1]->{href} =~ /Recent/;
+			my $country = $parser->get_text;
+			my $date_tag = $parser->get_tag('a');
+			my $date = $parser->get_text;
+			my $year_tag = $parser->get_tag('a');
+			my $year = $parser->get_text;
+			push @{ $self->{_release_dates} }, {country => $country, date => "$date, $year"};
+		}
+	}
+
+	return $self->{_release_dates};
+}
+
 =back
+
 
 =cut
 

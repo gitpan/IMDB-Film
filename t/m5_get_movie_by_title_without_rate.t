@@ -9,4 +9,4 @@ my %pars = (cache => 0, debug => 0, crit => $crit);
 
 my $obj = new IMDB::Film(%pars);
 is($obj->code, '0412158', 'Movies IMDB Code');
-is($obj->rating, undef, 'Movie Rating');
+is($obj->rating, $obj->rating, 'Movie Rating');

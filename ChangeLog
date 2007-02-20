@@ -1,5 +1,16 @@
 Revision history for Perl module IMDB::Film
 
+0.24 February 20 2007
+	- modified a logic of IMDB::Film and IMDB::Person according to the new
+		layout of IMDB site.
+
+0.23 December 19 2006
+	- added a new method to retrieve a release dates (thanks to Danial Pearce);
+	- added a new method to retrieve a list of quotes (thanks to buu);
+	- fixed a bug with retrieving movie cover in case when its title contains
+		some special symbils (thanks to Thomas Hoff);
+	- added tests for new functionality.	
+
 0.22 August 1 2006
 	- modified a procedure of parsing cast (thanks to drmarker for contibution);
 	- removed a request for retrieving of movie official sites from the base initialization
