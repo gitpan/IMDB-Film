@@ -1,5 +1,11 @@
 Revision history for Perl module IMDB::Film
 
+0.25 March 02 2007
+	- fixed a bug with retrieving of movie rating (thanks to Arne Brutschy, Ulrich Tueshaus and 
+		Nick Johnston for bug reports and patches);
+	- fixed a retrieving of movie certifications (thanks to Nick Johnston);
+	- added new tests for rating and certifications.
+
 0.24 February 20 2007
 	- modified a logic of IMDB::Film and IMDB::Person according to the new
 		layout of IMDB site.

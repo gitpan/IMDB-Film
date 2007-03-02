@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 12;
+use Test::More tests => 16;
 
 use IMDB::Film;
 
@@ -55,3 +55,13 @@ is($obj->language->[0], $films{language}[0], 'Movie Language');
 is($obj->country->[0], $films{country}[0], 'Movie Country');
 is($obj->genres->[0], $films{genres}[0], 'Movie Genre');
 like($obj->full_plot, qr/$films{full_plot}/, 'Movie full plot');
+
+my($rate, $num) = $obj->rating;
+like($rate, qr/\d+/, 'Movie rating');
+like($num, qr/\d+/, 'Rated people');
+
+$rate = $obj->rating;
+like($rate, qr/\d+/, 'Movie rating');
+
+my $certs = $obj->certifications;
+is($certs->{USA}, 'R', 'Movie Certifications');

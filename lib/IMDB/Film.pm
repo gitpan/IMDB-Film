@@ -87,7 +87,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.24';
+		$VERSION = '0.25';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -424,7 +424,7 @@ sub directors {
 			my $text = $parser->get_text();
 			last if $text =~ /writing/i or $tag->[0] eq '/td';
 			
-			if($tag->[0] eq 'a') {
+			if($tag->[0] eq 'a' && $tag->[1]{href}) {
 				my($id) = $tag->[1]{href} =~ /(\d+)/;	
 				push @directors, {id => $id, name => $text};
 			}			
@@ -580,14 +580,14 @@ sub rating {
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
 	
-		while(my $tag = $parser->get_tag(MAIN_TAG)) {
+		while(my $tag = $parser->get_tag('b')) {
 			last if $parser->get_text =~ /rating/i;
 		}
-
+		
 		my $tag = $parser->get_tag('b');	
-		my $text = $parser->get_trimmed_text('b', 'a');
+		my $text = $parser->get_trimmed_text('b', '/a');
 
-		my($rating, $val) = $text =~ m!(\d+\.?\d+)\/.*?\((\d+\,?\d+)\s.*?\)!;
+		my($rating, $val) = $text =~ m!(\d+\.?\d+)\/.*?\((\d+\,?\d+)\s.*?\)?!;
 		$val =~ s/\,// if $val;
 
 		$self->{_rating} = [$rating, $val];
@@ -817,8 +817,8 @@ sub summary {
 	my $forced = shift || 0;
 		
 	if($forced) {
-		my ($tag, $text);
-		my ($parser) = $self->_parser(FORCED);
+		my($tag, $text);
+		my($parser) = $self->_parser(FORCED);
 
 		while($tag = $parser->get_tag('b')) {
 			$text = $parser->get_text();
@@ -847,13 +847,13 @@ sub certifications {
 
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
-		while($tag = $parser->get_tag('b')) {
+		while($tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /certification/i;
 		}
 
 		while($tag = $parser->get_tag()) {
 			
-			if($tag->[0] eq 'a' && $tag->[1]{href} =~ /certificates/i) {
+			if($tag->[0] eq 'a' && $tag->[1]{href} && $tag->[1]{href} =~ /certificates/i) {
 				my($country, $range) = split /\:/, $parser->get_text;
 				$cert_list{$country} = $range;
 			}
