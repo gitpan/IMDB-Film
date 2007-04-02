@@ -87,7 +87,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.25';
+		$VERSION = '0.26';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -424,7 +424,7 @@ sub directors {
 			my $text = $parser->get_text();
 			last if $text =~ /writing/i or $tag->[0] eq '/td';
 			
-			if($tag->[0] eq 'a' && $tag->[1]{href}) {
+			if($tag->[0] eq 'a' && $tag->[1]{href} && $text !~ /img/i) {
 				my($id) = $tag->[1]{href} =~ /(\d+)/;	
 				push @directors, {id => $id, name => $text};
 			}			
@@ -461,9 +461,9 @@ sub writers {
 			
 		while($tag = $parser->get_tag()) {
 			my $text = $parser->get_text();
-			last if $tag->[0] eq '/table';
+			last if $tag->[0] eq 'b';
 			
-			if($tag->[0] eq 'a' && $text !~ /more/i) {
+			if($tag->[0] eq 'a' && $tag->[1]{href} && $text !~ /more/i && $text !~ /img/i) {
 				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/) {
 					push @writers, {id => $id, name => $text};
 				}	
@@ -1073,6 +1073,8 @@ IMDB::BaseClass
 WWW::Yahoo::Movies
 IMDB::Movie
 HTML::TokeParser 
+
+http://videoguide.sf.net
 
 =head1 AUTHOR
 

@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.25';
+	$VERSION = '0.26';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -296,6 +296,9 @@ different value for that:
 	my $imdb = new IMDB::Film(code => 111111, query => 'some significant string');
 
 Default value is 'title/tt'.
+
+B<Note: this is a mainly service parameter. So, there is no reason to pass it in the
+real case.>
 
 =cut
 sub _query {
