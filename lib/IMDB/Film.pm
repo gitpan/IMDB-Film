@@ -87,7 +87,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.26';
+		$VERSION = '0.27';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -417,12 +417,13 @@ sub directors {
 		my (@directors, $tag);
 	
 		while($tag = $parser->get_tag(MAIN_TAG)) {
-			last if $parser->get_text =~ /^directed/i;
+			last if $parser->get_text =~ /^direct(?:ed|or)/i;
 		}
 
 		while ($tag = $parser->get_tag() ) {
 			my $text = $parser->get_text();
-			last if $text =~ /writing/i or $tag->[0] eq '/td';
+			
+			last if $text =~ /^writ(?:ing|ers)/i or $tag->[0] eq '/div';
 			
 			if($tag->[0] eq 'a' && $tag->[1]{href} && $text !~ /img/i) {
 				my($id) = $tag->[1]{href} =~ /(\d+)/;	
@@ -456,12 +457,12 @@ sub writers {
 		my (@writers, $tag);
 		
 		while($tag = $parser->get_tag(MAIN_TAG)) {
-			last if $parser->get_text =~ /^writing/i;
+			last if $parser->get_text =~ /writ(?:ing|ers)/i;
 		}
 			
 		while($tag = $parser->get_tag()) {
 			my $text = $parser->get_text();
-			last if $tag->[0] eq 'b';
+			last if $tag->[0] eq '/div';
 			
 			if($tag->[0] eq 'a' && $tag->[1]{href} && $text !~ /more/i && $text !~ /img/i) {
 				if(my($id) = $tag->[1]{href} =~ /nm(\d+)/) {

@@ -1,5 +1,9 @@
 Revision history for Perl module IMDB::Film
 
+0.27 April 16 2007
+	- fixed a bug with parsing of list of movie directors and writers (thanks to Nick Johnston for
+		his patch and Benjamin Juang and Bas for bugreports).
+
 0.26 April 02 2007
 	- fixed a bug with parsing directors and writers (thanks to Andy Dales for the bugreport);
 	- added a few new tests;
