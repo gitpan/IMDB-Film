@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 12;
+use Test::More tests => 14;
 
 use IMDB::Film;
 
@@ -37,6 +37,8 @@ my %films = (
 		directors		=> [{id => '0000583', name => 'Wolfgang Petersen'}],
 		writers			=> [{id => '0392955', name => 'Homer'}, 
 							{id => '1125275', name => 'David Benioff'}],
+		duration		=> '163 min',
+		aspect_ratio	=> '2.35 : 1',
 );
 
 my %pars = (cache => 0, debug => 0, crit => $crit);
@@ -55,3 +57,5 @@ is($obj->language->[0], $films{language}[0], 'Movie Language');
 is($obj->country->[0], $films{country}[0], 'Movie Country');
 is($obj->genres->[0], $films{genres}[0], 'Movie Genre');
 like($obj->full_plot, qr/$films{full_plot}/, 'Movie full plot');
+is($obj->duration, $films{duration}, 'Movie Duration');
+is($obj->aspect_ratio, $films{aspect_ratio}, 'Movie Aspect Ratio');

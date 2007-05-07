@@ -1,5 +1,9 @@
 Revision history for Perl module IMDB::Film
 
+0.28 May 07 2007
+	- added a new method  - aspect_ratio, to get movie aspect ratio;
+	- fixed a bug with retrieving movie runtime (thanks to Steve Meier for bugreport).
+
 0.27 April 16 2007
 	- fixed a bug with parsing of list of movie directors and writers (thanks to Nick Johnston for
 		his patch and Benjamin Juang and Bas for bugreports).

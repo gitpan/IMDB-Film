@@ -74,6 +74,7 @@ use fields qw(	_title
 				_awards
 				_official_sites
 				_release_dates
+				_aspect_ratio
 				full_plot_url
 		);
 	
@@ -87,7 +88,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.27';
+		$VERSION = '0.28';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -116,6 +117,7 @@ BEGIN {
 		_also_known_as	=> [],
 		_official_sites	=> [],
 		_release_dates	=> [],
+		_duration		=> [],
 	);	
 	
 	sub _get_default_attrs { keys %_defaults }		
@@ -287,10 +289,15 @@ sub _get_simple_prop {
 
 	while(my $tag = $parser->get_tag(MAIN_TAG)) {
 		my $text = $parser->get_text;
+
+		$self->_show_message("[$tag->[0]] $text --> $target", 'DEBUG');
+
 		last if $text =~ /$target/i;
 	}
 
 	my $res = $parser->get_trimmed_text(MAIN_TAG, 'a');
+
+	$self->_show_message($res, 'DEBUG');
 	
 	return $res;
 }
@@ -644,9 +651,13 @@ sub cast {
 
 =item duration()
 
-Retrieve film duration in minutes:
+In the scalar context it retrieves a film duration in minutes (the first record):
 
 	my $duration = $film->duration();
+
+In array context it retrieves all movie's durations:
+
+	my @durations = $film->duration();
 
 =cut
 sub duration {
@@ -661,10 +672,12 @@ sub duration {
 			last if $text =~ /runtime:/i;
 		}	
 		
-		$self->{_duration} = $parser->get_trimmed_text(MAIN_TAG, 'br');
+		my @runtime = split /\s+\/\s+/, $parser->get_trimmed_text(MAIN_TAG, 'br');
+		
+		$self->{_duration} = \@runtime;		
 	}
 
-	return $self->{_duration};
+	return wantarray ? @{ $self->{_duration} } : $self->{_duration}->[0];
 }
 
 =item country()
@@ -804,6 +817,21 @@ sub awards {
 	$self->{_awards} = $self->_get_simple_prop('awards') unless $self->{_awards};
 
 	return $self->{_awards};
+}
+
+=item aspect_ratio()
+
+Returns an aspect ratio of specified movie:
+
+	my $aspect_ratio = $film->aspect_ratio();
+
+=cut
+sub aspect_ratio {
+	my CLASS_NAME $self = shift;
+
+	$self->{_aspect_ratio} = $self->_get_simple_prop('aspect ratio') unless $self->{_aspect_ratio};
+
+	return $self->{_aspect_ratio};
 }
 
 =item summary()
