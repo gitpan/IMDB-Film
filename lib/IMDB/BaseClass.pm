@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.28';
+	$VERSION = '0.29';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -386,8 +386,8 @@ sub _content {
 		
 		$self->{content} = \$page;
 	}
-	
-	return $self->{content};
+
+	$self->{content};
 }
 
 sub _get_page_from_internet {
@@ -436,22 +436,41 @@ sub _search_results {
 	my CLASS_NAME $self = shift;
 	my $pattern = shift || croak 'Please, specify search pattern!';
 	my $end_tag = shift || '/li';
+	my $year	= shift;
 	
-	my @matched;
+	my(@matched, @guess_res, %matched_hash);
 	my $parser = $self->_parser();
-
+	
+	my $count = 0;
 	while( my $tag = $parser->get_tag('a') ) {
 		my $href = $tag->[1]{href};
-		if( my($id) = $href =~ /$pattern/ ) {
-			push @matched, {id => $id, title => $parser->get_trimmed_text('a', $end_tag)};
+		my $title = $parser->get_trimmed_text('a', $end_tag);
+		
+		next if $title =~ /\[IMG\]/i;
+
+		if(my($id) = $href =~ /$pattern/) {
+			$matched_hash{$id} = {title => $title, 'pos' => $count++};
+			@guess_res = ($id, $title) if $year && $title =~ /$year/;
 		}	
 	}
 
+	@matched = map { {title => $matched_hash{$_}->{title}, id => $_} } 
+				sort { $matched_hash{$a}->{'pos'} <=> $matched_hash{$b}->{'pos'} } keys %matched_hash;
+	
 	$self->matched(\@matched);
-	$self->_content($matched[0]->{id});
+	
+	my($title, $id);
+	if(@guess_res) {
+		($id, $title) = @guess_res;
+	} else {
+		$title = $matched[0]->{title};
+		$id = $matched[0]->{id};
+	}
+
+	$self->_content($id);
 	$self->_parser(FORCED);
 
-	return $matched[0]->{title};
+	return $title;
 }
 
 =item matched()

@@ -88,7 +88,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.28';
+		$VERSION = '0.29';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -109,7 +109,7 @@ BEGIN {
 		matched			=> [],
         host			=> 'www.imdb.com',
         query			=> 'title/tt',
-        search 			=> 'find?tt=on;mx=20;q=',		
+        search 			=> 'find?s=tt;q=',	
 		status			=> 0,		
 		timeout			=> 10,
 		user_agent		=> 'Mozilla/5.0',
@@ -159,7 +159,7 @@ sub _init {
 	
 	$self->SUPER::_init(%args);
 	
-	$self->title(FORCED);
+	$self->title(FORCED, \%args);
 	
 	unless($self->title) {
 		$self->status(EMPTY_OBJECT);
@@ -178,6 +178,13 @@ sub _init {
 =head2 Options
 
 =over 4
+
+=item year
+
+Define a movie's year. It's useful to use it to get the proper movie by its title:
+
+	my $imdbObj = new IMDB::Film(crit => 'Jack', year => 2003);
+	print "Got #" . $imdbObj->code . " " . $imdbObj->title . "\n"; #0379836
 
 =item proxy
 
@@ -272,8 +279,9 @@ Implemets functionality to search film by name.
 =cut
 sub _search_film {
 	my CLASS_NAME $self = shift;
+	my $args = shift || {};
 
-	return $self->SUPER::_search_results('\/title\/tt(\d+)');
+	return $self->SUPER::_search_results('\/title\/tt(\d+)', '/td', $args->{year});
 }
 
 =item _get_simple_prop()
@@ -340,7 +348,9 @@ matched films and continue to process first one:
 =cut
 sub title {	
 	my CLASS_NAME $self = shift;
-	my $forced = shift || 0;
+	my $forced 	= shift || 0;
+	my $args	= shift || {};
+
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
 	
@@ -348,7 +358,7 @@ sub title {
 		my $title = $parser->get_text();
 		if($title =~ /imdb\s+title\s+search/i) {
 			$self->_show_message("Go to search page ...", 'DEBUG');
-			$title = $self->_search_film();				
+			$title = $self->_search_film($args);				
 		} 
 		
 		if($title) {
@@ -464,7 +474,7 @@ sub writers {
 		my (@writers, $tag);
 		
 		while($tag = $parser->get_tag(MAIN_TAG)) {
-			last if $parser->get_text =~ /writ(?:ing|ers)/i;
+			last if $parser->get_text =~ /writ(?:ing|ers|er)/i;
 		}
 			
 		while($tag = $parser->get_tag()) {
@@ -974,8 +984,9 @@ sub official_sites {
 	
 
 		my $parser = $self->_parser(FORCED, \$page);
-		while(my $tag = $parser->get_tag('div')) {
-			last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15content';
+		while(my $tag = $parser->get_tag()) {
+			#last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15title';
+			last if $tag->[0] eq 'ol';
 		}
 
 		while(my $tag = $parser->get_tag()) {
@@ -1018,8 +1029,9 @@ sub release_dates {
 		}
 
 		my $parser = $self->_parser(FORCED, \$page);
-		while(my $tag = $parser->get_tag('div')) {
-			last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15content';
+		while(my $tag = $parser->get_tag('th')) {
+			#last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15title';
+			last if $tag->[1]->{class} && $tag->[1]->{class} eq 'xxxx';
 		}
 
 		while(my $tag = $parser->get_tag()) {
@@ -1030,6 +1042,7 @@ sub release_dates {
 			my $date = $parser->get_text;
 			my $year_tag = $parser->get_tag('a');
 			my $year = $parser->get_text;
+
 			push @{ $self->{_release_dates} }, {country => $country, date => "$date, $year"};
 		}
 	}

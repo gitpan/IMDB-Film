@@ -1,5 +1,14 @@
 Revision history for Perl module IMDB::Film
 
+0.29 Jul 18 2007
+	- added possibility to get movie by its title and year (requested by Ohad
+	Ben-Cohen);
+	- modified a search procedure to fit a new IMDB layout (thanks to Danial
+	Pearce, Peter Valdemar Mørch for bug-reports and patches);
+	- modified retrieving a list of official sites and released dates;
+	- fixed a bug with parsing writers movie info in case if there is only one
+	person (thanks to Szel Miklos for bug-report).
+
 0.28 May 07 2007
 	- added a new method  - aspect_ratio, to get movie aspect ratio;
 	- fixed a bug with retrieving movie runtime (thanks to Steve Meier for bugreport).
