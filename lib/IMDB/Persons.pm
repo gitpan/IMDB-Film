@@ -67,7 +67,7 @@ use constant CLASS_NAME => 'IMDB::Persons';
 use constant MAIN_TAG	=> 'h5';
 
 BEGIN {
-	$VERSION = '0.28';
+	$VERSION = '0.30';
 }
 
 {
@@ -294,9 +294,11 @@ sub filmography {
 	my $films;
 	if(!$self->{'_filmography'}) {
 		my $parser = $self->_parser(FORCED);
-		while(my $tag = $parser->get_tag('img')) {
+		while(my $tag = $parser->get_tag('h3')) {
 
-			last if $tag->[1]->{src} && $tag->[1]->{src} =~ /filmography/i;
+			#last if $tag->[1]->{src} && $tag->[1]->{src} =~ /filmography/i;
+			my $text = $parser->get_text;
+			last if $text && $text =~ /filmography/i;
 		}	
 
 		while(my $tag = $parser->get_tag()) {

@@ -1,8 +1,13 @@
 Revision history for Perl module IMDB::Film
 
+0.30 Sep 13 2007
+	- modified a functionlity to retrieve cast;
+	- fixed a bug with return a goofs (thanks to John Norton for bug-report);
+	- added localization of variable $/ (thanks to John Norton for bug-report);
+	- fixed a few bugs in the tests.
+
 0.29 Jul 18 2007
-	- added possibility to get movie by its title and year (requested by Ohad
-	Ben-Cohen);
+	- added possibility to get movie by its title and year (good idea given by Ohad Ben-Cohen);
 	- modified a search procedure to fit a new IMDB layout (thanks to Danial
 	Pearce, Peter Valdemar Mørch for bug-reports and patches);
 	- modified retrieving a list of official sites and released dates;

@@ -32,6 +32,7 @@ like($p->photo, qr/$person_info{photo}/, 'photo');
 my $list = $p->filmography();
 my $f = 0;
 for (@$list) {
+
 	if($_->{title} eq $person_info{film}->{title}) {
 		is($_->{code}, $person_info{film}->{code}, 'movie code');
 		is($_->{year}, $person_info{film}->{year}, 'movie code');

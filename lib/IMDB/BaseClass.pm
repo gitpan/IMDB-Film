@@ -27,7 +27,7 @@ use Data::Dumper;
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.29';
+	$VERSION = '0.30';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -363,6 +363,7 @@ sub _content {
 			if( -f $crit ) {
 				$self->_show_message("Parse IMDB HTML file ...", 'DEBUG');
 				
+				local $/;
 				undef $/;
 				open FILE, $crit or die "Cannot open off-line IMDB file: $!!";
 				$page = <FILE>;

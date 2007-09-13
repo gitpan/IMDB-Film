@@ -88,7 +88,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.29';
+		$VERSION = '0.30';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -634,16 +634,12 @@ sub cast {
 		my (@cast, $tag, $person, $id, $role);
 		my $parser = $self->_parser(FORCED);
 	
-		#while($tag = $parser->get_tag(MAIN_TAG)) {
-		while($tag = $parser->get_tag('img')) {
-			#next unless (exists  $tag->[1]{class} and $tag->[1]{class} eq 'blackcatheader');
-			#last if $parser->get_text =~ /^(cast overview|credited cast|(?:series )?complete credited cast)/i;
-			last if $tag->[1]->{src} =~ /cast/i;
+		while($tag = $parser->get_tag('table')) {
+			last if $tag->[1]->{class} && $tag->[1]->{class} =~ /cast/i;
 		}
 		
 		while($tag = $parser->get_tag('a')) {
 			last if $tag->[1]{href} =~ /fullcredits/i;
-			#if($tag->[1]{href} && $tag->[1]{href} =~ m!/name/nm(\d+?)/!) {
 			if($tag->[1]{href} && $tag->[1]{href} =~ m#(?<!tinyhead)/name/nm(\d+?)/#) {
 				$person = $parser->get_text;
 				$id = $1;	
@@ -811,7 +807,7 @@ sub goofs {
 	my CLASS_NAME $self = shift;
 
 	$self->{_goofs} = $self->_get_simple_prop('goofs') unless($self->{_goofs});
-	return $self->{_trivia};
+	return $self->{_goofs};
 }
 
 =item awards()
