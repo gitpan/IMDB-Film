@@ -53,7 +53,10 @@ use Carp;
 use Data::Dumper;
 
 use fields qw(	_title
+		_kind
 				_year
+				_episodes
+				_episodeof
 				_summary
 				_cast
 				_directors
@@ -78,7 +81,7 @@ use fields qw(	_title
 				full_plot_url
 		);
 	
-use vars qw( $VERSION %FIELDS %FILM_CERT $PLOT_URL );
+use vars qw( $VERSION %FIELDS %FILM_CERT %FILM_KIND $PLOT_URL );
 
 use constant CLASS_NAME 	=> 'IMDB::Film';
 use constant FORCED			=> 1;
@@ -88,7 +91,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.30';
+		$VERSION = '0.31';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -96,7 +99,17 @@ BEGIN {
 						R 		=> 16, 
 						'NC-17' => 16, 
 						PG 		=> 13, 
-						'PG-13' => 13 );							
+						'PG-13' => 13
+					);							
+
+		%FILM_KIND = ( 	''		=> 'movie',
+						TV		=> 'tv movie',
+						V		=> 'video movie',
+						mini	=> 'tv mini series',
+						VG		=> 'video game',
+						S		=> 'tv series',
+						E		=> 'episode'
+					);				
 }
 
 {
@@ -284,33 +297,6 @@ sub _search_film {
 	return $self->SUPER::_search_results('\/title\/tt(\d+)', '/td', $args->{year});
 }
 
-=item _get_simple_prop()
-
-Retrieve a simple movie property which surrownded by <B>.
-
-=cut
-sub _get_simple_prop {
-	my CLASS_NAME $self = shift;
-	my $target = shift || '';
-	
-	my $parser = $self->_parser(FORCED);
-
-	while(my $tag = $parser->get_tag(MAIN_TAG)) {
-		my $text = $parser->get_text;
-
-		$self->_show_message("[$tag->[0]] $text --> $target", 'DEBUG');
-
-		last if $text =~ /$target/i;
-	}
-
-	my $res = $parser->get_trimmed_text(MAIN_TAG, 'a');
-
-	$self->_show_message($res, 'DEBUG');
-	
-	return $res;
-}
-
-
 =back
 
 =head2 Object Public Methods
@@ -365,12 +351,35 @@ sub title {
 			$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
 														unless $self->code;
 			$title =~ s/\*/\\*/g;
-
-			($self->{_title}, $self->{_year}) = $title =~ m!(.*?)\s+\((\d{4}).*?\)!;
+			
+			($self->{_title}, $self->{_year}, $self->{_kind}) = $title =~ m!(.*?)\s+\(([\d\?]{4}).*?\)(?:\s+\((.*?)\))?!;
+			$self->{_kind} = '' unless $self->{_kind};
+			
+        		#"The Series" An Episode (2005)
+			#"The Series" (2005)
+        		if( $self->{_title} =~ /\"[^\"]+\"(\s+.+\s+)?/ ) {
+        			$self->{_kind} = $1 ? 'E' : 'S';
+        		}
+        		
+			
 		}	
 	}	
 	
 	return $self->{_title};
+}
+
+=item kind()
+
+Get kind of movie:
+	
+	my $kind = $film->kind();
+	
+	Possible values are: 'movie', 'tv series', 'tv mini series', 'video game', 'video movie', 'tv movie', 'episode'.
+
+=cut
+sub kind {
+	my CLASS_NAME $self = shift;
+	return $FILM_KIND{$self->{_kind}};
 }
 
 =item year()
@@ -383,6 +392,102 @@ Get film year:
 sub year {
 	my CLASS_NAME $self = shift;
 	return $self->{_year};
+}
+
+
+=item episodes()
+
+Retrieve episodes info list each element of which is hash reference for tv series -
+{ id => <ID>, title => <Title>, season => <Season>, episode => <Episode>, date => <Date>, plot => <Plot> }:
+
+	my @episodes = @{ $film->episodes() };
+
+=cut
+sub episodes {
+	my CLASS_NAME $self = shift;
+
+	return if $self->kind ne "tv series";
+
+	unless($self->{_episodes}) {
+		my $page;
+		$page = $self->_cacheObj->get($self->code . '_episodes') if $self->_cache;
+
+		unless($page) {
+			my $url = "http://". $self->{host} . "/" . $self->{query} .  $self->code . "/episodes";
+			$self->_show_message("URL for episodes is $url ...", 'DEBUG');
+
+			$page = $self->_get_page_from_internet($url);
+			$self->_cacheObj->set($self->code.'_episodes', $page, $self->_cache_exp) if $self->_cache;
+		}
+
+		my $parser = $self->_parser(FORCED, \$page);
+		while(my $tag = $parser->get_tag('a')) {
+			next unless $tag->[1]->{name} and $tag->[1]->{name} =~ /year/;
+			$parser->get_tag('h4');
+			my($season, $episode) = $parser->get_text =~ /Season\s+(.*?),\s+Episode\s+([^:]+)/;
+			my $imdb_tag = $parser->get_tag('a');
+			my($id) = $imdb_tag->[1]->{href} =~ /(\d+)/;
+			my $title = $parser->get_trimmed_text;
+			$parser->get_tag('b');
+			my($date) = $parser->get_trimmed_text =~ /Original Air Date:\s+(.*)/;
+			$parser->get_tag('br');
+			my $plot = $parser->get_trimmed_text;
+			
+			push @{ $self->{_episodes} }, { 	
+								season 	=> $season, 
+								episode => $episode, 
+								id 		=> $id,
+								title 	=> $title,
+								date 	=> $date,
+								plot 	=> $plot
+							};
+		}
+	}
+
+	return $self->{_episodes};
+}
+
+=item episodeof()
+
+Retrieve parent tv series list each element of which is hash reference for episode -
+{ id => <ID>, title => <Title>, year => <Year> }:
+
+	my @tvseries = @{ $film->episodeof() };
+
+=cut
+sub episodeof {
+   my CLASS_NAME $self = shift;
+   my $forced = shift || 0;
+
+   return if $self->kind ne "episode";
+
+   if($forced) {
+	   my($episodeof, $title, $year, $episode, $season, $id);
+	   my($parser) = $self->_parser(FORCED);
+
+	   while($parser->get_tag(MAIN_TAG)) {
+		   last if $parser->get_text =~ /^TV Series/i;
+	   }
+
+	   while(my $tag = $parser->get_tag('a')) {
+		   ($title, $year) = ($1, $2) if $parser->get_text =~ m!(.*?)\s+\(([\d\?]{4}).*?\)!;
+		   last unless $tag->[1]{href} =~ /title/i;
+		   ($id) = $tag->[1]{href} =~ /(\d+)/;
+	   }
+
+	   #start again
+	   $parser = $self->_parser(FORCED);
+	   while($parser->get_tag(MAIN_TAG)) {
+		   last if $parser->get_text =~ /^Original Air Date/i;
+	   }
+	   
+	   $parser->get_token;	   
+	   ($season, $episode) = $parser->get_text =~ /\(Season\s+(\d+),\s+Episode\s+(\d+)/;
+
+	   push @{ $self->{_episodeof} }, {title => $title, year => $year, id => $id, season => $season, episode => $episode};
+   }
+
+   return $self->{_episodeof};
 }
 
 =item cover()
@@ -643,7 +748,8 @@ sub cast {
 			if($tag->[1]{href} && $tag->[1]{href} =~ m#(?<!tinyhead)/name/nm(\d+?)/#) {
 				$person = $parser->get_text;
 				$id = $1;	
-				my $text = $parser->get_trimmed_text('a', '/tr');
+				my $text = $parser->get_trimmed_text('/tr');
+
 				($role) = $text =~ /.*?\s+(.*)$/;			
 				push @cast, {id => $id, name => $person, role => $role};
 			}	
@@ -651,7 +757,7 @@ sub cast {
 		
 		$self->{_cast} = \@cast;
 	}
-
+	
 	return $self->{_cast};
 }
 
@@ -1116,11 +1222,11 @@ http://videoguide.sf.net
 
 =head1 AUTHOR
 
-Michael Stepanov (stepanov.michael@gmail.com)
+Michael Stepanov AKA nite_man (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 - 2005, Michael Stepanov. All Rights Reserved.
+Copyright (c) 2004 - 2007, Michael Stepanov.
 This module is free software. It may be used, redistributed and/or 
 modified under the same terms as Perl itself.
 

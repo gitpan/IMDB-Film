@@ -24,10 +24,12 @@ use Carp;
 
 use Data::Dumper;
 
+use constant MAIN_TAG	=> 'h5';
+
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.30';
+	$VERSION = '0.31';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -429,6 +431,35 @@ sub _parser {
 	return $self->{parser};
 }
 
+=item _get_simple_prop()
+
+Retrieve a simple movie property which surrownded by <B>.
+
+=cut
+sub _get_simple_prop {
+	my CLASS_NAME $self = shift;
+	my $target = shift || '';
+	
+	my $parser = $self->_parser(FORCED);
+
+	while(my $tag = $parser->get_tag(MAIN_TAG)) {
+		my $text = $parser->get_text;
+
+		$self->_show_message("[$tag->[0]] $text --> $target", 'DEBUG');
+
+		last if $text =~ /$target/i;
+	}
+
+	my $end_tag = $target eq 'trivia' ? '/div' : 'a';
+
+	my $res = $parser->get_trimmed_text($end_tag);	
+
+	$self->_show_message($res, 'DEBUG');
+	
+	return $res;
+}
+
+
 =back
 
 =cut
@@ -561,11 +592,11 @@ HTML::TokeParser
 
 =head1 AUTHOR
 
-Mikhail Stepanov (stepanov.michael@gmail.com)
+Mikhail Stepanov AKA nite_man (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 - 2005, Mikhail Stepanov. All Rights Reserved.
+Copyright (c) 2004 - 2007, Mikhail Stepanov.
 This module is free software. It may be used, redistributed and/or 
 modified under the same terms as Perl itself.
 

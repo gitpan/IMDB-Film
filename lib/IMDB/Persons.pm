@@ -58,6 +58,8 @@ use fields qw(	_name
 				_mini_bio
 				_filmography_types
 				_filmography
+				_genres
+				_plot_keywords
 	);
 
 use vars qw($VERSION %FIELDS);
@@ -67,7 +69,7 @@ use constant CLASS_NAME => 'IMDB::Persons';
 use constant MAIN_TAG	=> 'h5';
 
 BEGIN {
-	$VERSION = '0.30';
+	$VERSION = '0.31';
 }
 
 {
@@ -296,7 +298,6 @@ sub filmography {
 		my $parser = $self->_parser(FORCED);
 		while(my $tag = $parser->get_tag('h3')) {
 
-			#last if $tag->[1]->{src} && $tag->[1]->{src} =~ /filmography/i;
 			my $text = $parser->get_text;
 			last if $text && $text =~ /filmography/i;
 		}	
@@ -328,6 +329,61 @@ sub filmography {
 	return $self->{'_filmography'};
 }
 
+=item genres()
+
+Retrieve a list of movie genres for specified person:
+
+	my $genres = $persons->genres;
+
+=cut
+sub genres {
+	my CLASS_NAME $self = shift;
+
+	unless($self->{_genres}) {
+		my @genres = $self->_get_common_array_propery('genres');	
+		$self->{_genres} = \@genres;
+	}
+
+	$self->{_genres};
+}
+
+=item plot_keywords()
+
+Retrieve a list of keywords for movies where specified person plays:
+
+	my $keywords = $persons->plot_keywords;
+
+=cut
+sub plot_keywords {
+	my CLASS_NAME $self = shift;
+
+	unless($self->{_plot_keywords}) {
+		my @keywords = $self->_get_common_array_propery('plot keywords');	
+		$self->{_plot_keywords} = \@keywords;
+	}
+
+	$self->{_plot_keywords};
+}
+
+sub _get_common_array_propery {
+	my CLASS_NAME $self = shift;
+	my $target = shift || '';
+
+	my $parser = $self->_parser(FORCED);
+	while(my $tag = $parser->get_tag(MAIN_TAG)) {
+		my $text = $parser->get_text();
+		last if $text =~ /$target/i;
+	}
+		
+	my @res = ();
+	while(my $tag = $parser->get_tag('a')) {
+		last if $tag->[1]->{class} && $tag->[1]->{class} =~ /tn15more/i;
+		push @res, $parser->get_text;
+	}
+	
+	return @res;
+}
+
 sub filmography_types {
 	my CLASS_NAME $self = shift;
 }
@@ -357,11 +413,11 @@ HTML::TokeParser
 
 =head1 AUTHOR
 
-Mikhail Stepanov (stepanov.michael@gmail.com)
+Mikhail Stepanov AKA nite_man (stepanov.michael@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 - 2005, Mikhail Stepanov. All Rights Reserved.
+Copyright (c) 2004 - 2007, Mikhail Stepanov.
 This module is free software. It may be used, redistributed and/or 
 modified under the same terms as Perl itself.
 

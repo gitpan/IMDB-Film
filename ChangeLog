@@ -1,5 +1,14 @@
 Revision history for Perl module IMDB::Film
 
+0.31 Nov 16 2007
+	- added functionality to retrieve data of TV series: indicate is it TV
+	series of not and getting a list of episodes (thanks to Branislav Gerzo
+		for the patch);
+	- added new tests to check TV series functionlity;	
+	- modified a procedure of getting trivia text;
+	- fixed a bug with retrieving cast details (thanks to Matthias Hopf for
+		patch).
+
 0.30 Sep 13 2007
 	- modified a functionlity to retrieve cast;
 	- fixed a bug with return a goofs (thanks to John Norton for bug-report);

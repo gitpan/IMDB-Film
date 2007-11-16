@@ -1,4 +1,4 @@
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 use IMDB::Persons;
 
@@ -14,9 +14,10 @@ my %person_info = (
 	            'title' => 'Mission: Impossible III',
 				'role' 	=> 'Ethan Hunt',
 				'year' 	=> '2006',
-				'code' 	=> '0317919'
+				'code' 	=> '0317919'				
 	},
-															  
+	genres			=> ['Documentary', 'Drama', 'Talk-Show', 'Short'],
+	plot_keywords	=> ['Number In Title', 'TV Special', 'Awards Show', 'Non Fiction'],
 );
 
 my %pars = (crit => $person_info{name}, cache => 0, debug => 0);
@@ -43,3 +44,4 @@ for (@$list) {
 }
 
 is($f, 1, 'filmography');
+is_deeply($p->genres, $person_info{genres}, 'Person genres');
