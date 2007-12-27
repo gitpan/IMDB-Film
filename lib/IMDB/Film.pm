@@ -91,7 +91,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.31';
+		$VERSION = '0.32';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -710,7 +710,7 @@ sub rating {
 		my $tag = $parser->get_tag('b');	
 		my $text = $parser->get_trimmed_text('b', '/a');
 
-		my($rating, $val) = $text =~ m!(\d+\.?\d+)\/.*?\((\d+\,?\d+)\s.*?\)?!;
+		my($rating, $val) = $text =~ m!(\d*\.?\d*)\/.*?\((\d*\,?\d*)\s.*?\)?!;
 		$val =~ s/\,// if $val;
 
 		$self->{_rating} = [$rating, $val];
@@ -745,7 +745,7 @@ sub cast {
 		
 		while($tag = $parser->get_tag('a')) {
 			last if $tag->[1]{href} =~ /fullcredits/i;
-			if($tag->[1]{href} && $tag->[1]{href} =~ m#(?<!tinyhead)/name/nm(\d+?)/#) {
+			if($tag->[1]{href} && !$tag->[1]{onclick} && $tag->[1]{href} =~ m#name/nm(\d+?)/#) {
 				$person = $parser->get_text;
 				$id = $1;	
 				my $text = $parser->get_trimmed_text('/tr');
