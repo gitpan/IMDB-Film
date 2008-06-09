@@ -91,7 +91,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.32';
+		$VERSION = '0.33';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -784,7 +784,7 @@ sub duration {
 			last if $text =~ /runtime:/i;
 		}	
 		
-		my @runtime = split /\s+\/\s+/, $parser->get_trimmed_text(MAIN_TAG, 'br');
+		my @runtime = split /\s+(\/|\|)\s+/, $parser->get_trimmed_text(MAIN_TAG, 'br');
 		
 		$self->{_duration} = \@runtime;		
 	}
@@ -811,9 +811,11 @@ sub country {
 
 		my (@countries);
 		while(my $tag = $parser->get_tag()) {
-			
+
 			if( $tag->[0] eq 'a' && $tag->[1]{href} && $tag->[1]{href} =~ /countries/i ) {
-				push @countries, $parser->get_text();
+				my $text = $parser->get_text();
+				$text =~ s/\n//g;
+				push @countries, $text;
 			} 
 			
 			last if $tag->[0] eq 'br';
@@ -846,7 +848,9 @@ sub language {
 		while($tag = $parser->get_tag()) {
 			
 			if( $tag->[0] eq 'a' && $tag->[1]{href} && $tag->[1]{href} =~ /languages/i ) {
-				push @languages, $parser->get_text();
+				my $text = $parser->get_text();
+				$text =~ s/\n//g;
+				push @languages, $text;
 			} 
 			
 			last if $tag->[0] eq 'br';
@@ -995,7 +999,9 @@ sub certifications {
 		while($tag = $parser->get_tag()) {
 			
 			if($tag->[0] eq 'a' && $tag->[1]{href} && $tag->[1]{href} =~ /certificates/i) {
-				my($country, $range) = split /\:/, $parser->get_text;
+				my $text = $parser->get_text();
+				$text =~ s/\n//g;
+				my($country, $range) = split /\:/, $text;
 				$cert_list{$country} = $range;
 			}
 

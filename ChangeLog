@@ -1,6 +1,15 @@
 Revision history for Perl module IMDB::Film
 
-0.32 Dec 28
+0.33 Jun 09 2008
+	- fixed a bug with parsing a list of countries;
+	- fixed a bug with parsing a list of language;
+	- fixed a bug with parsing a list of certificates;
+	- fixed a bug with list of matches (thanks to Dan Faerch for bug-report and
+	patch);
+	- fixed a bug with searching by movie title in case if it a number (thanks
+	to Brian Wilson for bug-report and suggestion).
+
+0.32 Dec 28 2007
 	- fixed a bug with retrieving movie cast (thanks to David Sullivan for his
 	patch);
 	- added tests for the TV series;

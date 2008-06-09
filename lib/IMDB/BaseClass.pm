@@ -29,7 +29,7 @@ use constant MAIN_TAG	=> 'h5';
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.32';
+	$VERSION = '0.33';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -356,7 +356,7 @@ sub _content {
 		my $crit = shift || '';
 		my $page;
 	
-		$self->code($crit) if $crit =~ /^\d+$/;
+		$self->code($crit) if $crit =~ /^\d{7}$/;
 		$page = $self->_cacheObj()->get($crit) if $self->_cache();
 		
 		$self->_show_message("CRIT: $crit", 'DEBUG');
@@ -482,7 +482,7 @@ sub _search_results {
 
 		if(my($id) = $href =~ /$pattern/) {
 			$matched_hash{$id} = {title => $title, 'pos' => $count++};
-			@guess_res = ($id, $title) if $year && $title =~ /$year/;
+			@guess_res = ($id, $title) if $year && $title =~ /$year/ && !@guess_res;
 		}	
 	}
 
