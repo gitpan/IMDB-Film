@@ -29,7 +29,7 @@ use constant MAIN_TAG	=> 'h5';
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.33';
+	$VERSION = '0.34';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',

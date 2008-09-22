@@ -91,7 +91,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.33';
+		$VERSION = '0.34';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -422,11 +422,12 @@ sub episodes {
 
 		my $parser = $self->_parser(FORCED, \$page);
 		while(my $tag = $parser->get_tag('a')) {
+			my $id;
 			next unless $tag->[1]->{name} and $tag->[1]->{name} =~ /year/;
 			$parser->get_tag('h4');
 			my($season, $episode) = $parser->get_text =~ /Season\s+(.*?),\s+Episode\s+([^:]+)/;
 			my $imdb_tag = $parser->get_tag('a');
-			my($id) = $imdb_tag->[1]->{href} =~ /(\d+)/;
+			($id) = $imdb_tag->[1]->{href} =~ /(\d+)/ if $imdb_tag->[1]->{href};
 			my $title = $parser->get_trimmed_text;
 			$parser->get_tag('b');
 			my($date) = $parser->get_trimmed_text =~ /Original Air Date:\s+(.*)/;
@@ -703,14 +704,16 @@ sub rating {
 	if($forced) {
 		my $parser = $self->_parser(FORCED);
 	
-		while(my $tag = $parser->get_tag('b')) {
-			last if $parser->get_text =~ /rating/i;
+		while(my $tag = $parser->get_tag(MAIN_TAG)) {
+			last if $parser->get_text =~ /^User Rating/i;
 		}
 		
 		my $tag = $parser->get_tag('b');	
 		my $text = $parser->get_trimmed_text('b', '/a');
 
-		my($rating, $val) = $text =~ m!(\d*\.?\d*)\/.*?\((\d*\,?\d*)\s.*?\)?!;
+		$self->_show_message("Rating text is [$text]; tag: " . Dumper($tag), 'DEBUG');
+
+		my($rating, $val) = $text =~ m!(\d*\.?\d*)\/.*?(\d*\,?\d*)\s.*?!;
 		$val =~ s/\,// if $val;
 
 		$self->{_rating} = [$rating, $val];
@@ -796,7 +799,7 @@ sub duration {
 
 Retrieve film produced countries list:
 
-	my @countries = $film->country();
+	my $countries = $film->country();
 
 =cut
 sub country {
@@ -831,7 +834,7 @@ sub country {
 
 Retrieve film languages list:
 
-	my @languages = $film->language();
+	my $languages = $film->language();
 
 =cut
 sub language {
@@ -1138,7 +1141,6 @@ sub release_dates {
 
 		my $parser = $self->_parser(FORCED, \$page);
 		while(my $tag = $parser->get_tag('th')) {
-			#last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15title';
 			last if $tag->[1]->{class} && $tag->[1]->{class} eq 'xxxx';
 		}
 
@@ -1150,6 +1152,8 @@ sub release_dates {
 			my $date = $parser->get_text;
 			my $year_tag = $parser->get_tag('a');
 			my $year = $parser->get_text;
+
+			$self->_show_message("country=$country; date=$date, $year", 'DEBUG');
 
 			push @{ $self->{_release_dates} }, {country => $country, date => "$date, $year"};
 		}
