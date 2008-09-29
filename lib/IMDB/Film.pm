@@ -53,7 +53,7 @@ use Carp;
 use Data::Dumper;
 
 use fields qw(	_title
-		_kind
+				_kind
 				_year
 				_episodes
 				_episodeof
@@ -91,7 +91,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.34';
+		$VERSION = '0.35';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -713,7 +713,7 @@ sub rating {
 
 		$self->_show_message("Rating text is [$text]; tag: " . Dumper($tag), 'DEBUG');
 
-		my($rating, $val) = $text =~ m!(\d*\.?\d*)\/.*?(\d*\,?\d*)\s.*?!;
+		my($rating, $val) = $text =~ m!(\d+\.?\d*)/10.*?(\d+,?\d*)!;
 		$val =~ s/\,// if $val;
 
 		$self->{_rating} = [$rating, $val];

@@ -29,7 +29,7 @@ use constant MAIN_TAG	=> 'h5';
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.34';
+	$VERSION = '0.35';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -64,8 +64,7 @@ use fields qw(	content
 				file
 				timeout
 				user_agent
-				_code
-				
+				_code				
 	);
 
 =head2 Constructor and initialization
