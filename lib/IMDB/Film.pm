@@ -91,7 +91,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.35';
+		$VERSION = '0.36';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -421,16 +421,15 @@ sub episodes {
 		}
 
 		my $parser = $self->_parser(FORCED, \$page);
-		while(my $tag = $parser->get_tag('a')) {
+		while(my $tag = $parser->get_tag('h3')) {
 			my $id;
-			next unless $tag->[1]->{name} and $tag->[1]->{name} =~ /year/;
-			$parser->get_tag('h4');
-			my($season, $episode) = $parser->get_text =~ /Season\s+(.*?),\s+Episode\s+([^:]+)/;
+            my($season, $episode);
+            next unless(($season, $episode) = $parser->get_text =~ /Season\s+(.*?),\s+Episode\s+([^:]+)/); 
 			my $imdb_tag = $parser->get_tag('a');
 			($id) = $imdb_tag->[1]->{href} =~ /(\d+)/ if $imdb_tag->[1]->{href};
 			my $title = $parser->get_trimmed_text;
-			$parser->get_tag('b');
-			my($date) = $parser->get_trimmed_text =~ /Original Air Date:\s+(.*)/;
+			$parser->get_tag('strong');
+			my($date) = $parser->get_trimmed_text;
 			$parser->get_tag('br');
 			my $plot = $parser->get_trimmed_text;
 			

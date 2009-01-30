@@ -1,16 +1,19 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         IMDB-Film
-version:      0.35
-version_from: lib/IMDB/BaseClass.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                IMDB-Film
+version:             0.36
+abstract:            OO Perl interface to the movies database IMDB.
+license:             ~
+author:              
+    - Michael Stepanov <stepanov.michael@gmail.com>
+generated_by:        ExtUtils::MakeMaker version 6.42
+distribution_type:   module
+requires:     
     Cache::FileCache:              0
     Carp:                          0
     Digest::SHA1:                  0
     Error:                         0
     HTML::TokeParser:              2.28
     LWP::Simple:                   1.41
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3
