@@ -84,6 +84,7 @@ use fields qw(	_title
 				_connections
 				_full_companies
 				_recommendation_movies
+				_plot_keywords
 				full_plot_url
 		);
 	
@@ -97,7 +98,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.41';
+		$VERSION = '0.42';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -132,6 +133,7 @@ BEGIN {
 		status			=> 0,		
 		timeout			=> 10,
 		user_agent		=> 'Mozilla/5.0',
+		decode_html		=> 1,
 		full_plot_url	=> 'http://www.imdb.com/rg/title-tease/plotsummary/title/tt',		
 		_also_known_as	=> [],
 		_official_sites	=> [],
@@ -360,6 +362,7 @@ sub title {
 			$self->retrieve_code($parser, '/pro.imdb.com/title/tt(\d+)') 
 														unless $self->code;
 			$title =~ s/\*/\\*/g;
+			$title = $self->_decode_special_symbols($title);
 		
 			($self->{_title}, $self->{_year}, $self->{_kind}) = $title =~ m!(.*?)\s+\(([\d\?]{4}).*?\)(?:\s+\((.*?)\))?!;
 			$self->{_kind} = '' unless $self->{_kind};
@@ -897,10 +900,12 @@ sub plot {
 		while(my $tag = $parser->get_tag(MAIN_TAG)) {
 			last if $parser->get_text =~ /^plot/i;
 		}
+ 		
+		my $plot = $parser->get_trimmed_text(MAIN_TAG, '/div');
+		$plot =~ s/\s+full summary \| full synopsis//;
+		$self->{_plot} = $self->_decode_special_symbols($plot);
 
-		$self->{_plot} = $parser->get_trimmed_text(MAIN_TAG, 'a');
-
-		my $tag = $parser->get_tag('a');
+		$parser->get_tag('a');
 	}	
 
 	return $self->{_plot};
@@ -1344,8 +1349,7 @@ with site information - URL => Site Title:
 
 	my $sites = $film->official_sites();
 	for(@$sites) {
-		my($url, $title) = each %$_;
-		print "Site name - $title; url - $url\n";
+		print "Site name - $_->{title}; url - $_->{url}\n";
 	}
 
 =cut
@@ -1369,7 +1373,6 @@ sub official_sites {
 
 		my $parser = $self->_parser(FORCED, \$page);
 		while(my $tag = $parser->get_tag()) {
-			#last if $tag->[1]->{id} && $tag->[1]->{id} eq 'tn15title';
 			last if $tag->[0] eq 'ol';
 		}
 
@@ -1392,8 +1395,7 @@ Returns a list of release dates of specified movie as array reference:
 
 	my $sites = $film->release_dates();
 	for(@$sites) {
-		my($country, $date, $info) = each %$_;
-		print "Country - $country; release date - $date; info - $info\n";
+		print "Country - $_->{country}; release date - $_->{date}; info - $_->{info}\n";
 	}
 
 Option info contains additional information about release - DVD premiere, re-release, restored version etc	
@@ -1444,9 +1446,49 @@ sub release_dates {
 
 	return $self->{_release_dates};
 }
+=item 
+
+Retrieve a list of plot keywords as an array reference:
+
+	my $plot_keywords = $film->plot_keywords();
+	for my $keyword (@$plot_keywords) {
+		print "keyword: $keyword\n";
+	}
+
+=cut
+
+sub plot_keywords {
+	my CLASS_NAME $self = shift;
+	
+	unless($self->{_plot_keywords}) {
+		my $page;
+		$page = $self->_cacheObj->get($self->code . '_keywords') if $self->_cache;
+
+		unless($page) {
+			my $url = "http://". $self->{host} . "/" . $self->{query} .  $self->code . "/keywords";
+			$self->_show_message("URL for sites is $url ...", 'DEBUG');
+
+			$page = $self->_get_page_from_internet($url);
+			$self->_cacheObj->set($self->code.'_keywords', $page, $self->_cache_exp) if $self->_cache;
+		}
+
+		my $parser = $self->_parser(FORCED, \$page);
+		
+		my @keywords = ();
+		while(my $tag = $parser->get_tag('a')) {
+			my $text = $parser->get_text(); 
+			$text = $self->_decode_special_symbols($text);
+			$self->_show_message("*** $tag->[1]->{href} --> $text ***", 'DEBUG');
+			push @keywords, $text if $tag->[1]->{href} =~ m#/keyword/#;
+		}
+
+		$self->{_plot_keywords} = \@keywords;
+	}
+
+	return $self->{_plot_keywords};
+}
 
 =back
-
 
 =cut
 
