@@ -98,7 +98,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.43';
+		$VERSION = '0.44';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -304,7 +304,7 @@ sub _search_film {
 	my CLASS_NAME $self = shift;
 	my $args = shift || {};
 
-	return $self->SUPER::_search_results('\/title\/tt(\d+)', '/td', $args->{year});
+	return $self->SUPER::_search_results('^\/title\/tt(\d+)', '/td', $args->{year});
 }
 
 =back
