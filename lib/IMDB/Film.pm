@@ -85,6 +85,8 @@ use fields qw(	_title
 				_full_companies
 				_recommendation_movies
 				_plot_keywords
+				_big_cover_url
+				_big_cover_page
 				full_plot_url
 		);
 	
@@ -98,7 +100,7 @@ use constant EMPTY_OBJECT	=> 0;
 use constant MAIN_TAG		=> 'h5';
 
 BEGIN {
-		$VERSION = '0.45';
+		$VERSION = '0.46';
 						
 		# Convert age gradation to the digits		
 		# TODO: Store this info into constant file
@@ -189,7 +191,8 @@ sub _init {
 		return;
 	} 
 
-	for my $prop (grep { /^_/ && !/^(_title|_code|_full_plot|_official_sites|_release_dates|_connections|_full_companies|_plot_keywords)$/ } sort keys %FIELDS) {
+	for my $prop (grep { /^_/ &&
+	!/^(_title|_code|_full_plot|_official_sites|_release_dates|_connections|_full_companies|_plot_keywords|_big_cover_url|_big_cover_page)$/ } sort keys %FIELDS) {
 		($prop) = $prop =~ /^_(.*)/;
 		$self->$prop(FORCED);
 	}
@@ -456,7 +459,7 @@ sub connections {
         		my $name = $parser->get_trimmed_text;
 
         		# Handle series episodes (usually in 'referenced' sections)
-        		my($series,$t,$s,$e) = ($name =~ /^"(.*?): *(.*?) *\(#(\d+)\.(\d+)\)"$/);
+        		my($series,$t,$s,$e) = ($name =~ /^"(.*?): *(.*?) *\(?#(\d+)\.(\d+)\)?"$/);
           		$name = $series if defined $series;
         	
 				$tag = $parser->get_tag('/a');
@@ -685,7 +688,7 @@ sub cover {
 		
 			last if $img_tag->[1]{alt} =~ /^poster not submitted/i;			
 
-			if($img_tag->[1]{alt} =~ /^$title$/i) {
+			if($img_tag->[1]{alt} =~ /^$title$/i or ($img_tag->[1]{id} && $img_tag->[1]{id} eq 'primary-poster')) {
 				$cover = $img_tag->[1]{src};
 				last;
 			}
@@ -901,7 +904,7 @@ sub plot {
 		}
  		
 		my $plot = $parser->get_trimmed_text(MAIN_TAG, '/div');
-		$plot =~ s/\s+full summary \| full synopsis//;
+		$plot =~ s/\s+full summary.*//i;
 		$self->{_plot} = $self->_decode_special_symbols($plot);
 
 		$parser->get_tag('a');
@@ -1340,6 +1343,36 @@ sub full_plot {
 	}
 
 	return $self->{_full_plot};
+}
+
+sub big_cover {
+	my CLASS_NAME $self = shift;
+
+	unless($self->{'_big_cover_url'}) {
+		unless($self->{'_big_cover_page'}) {
+			my $parser = $self->_parser(FORCED);
+			while(my $tag = $parser->get_tag('a')) {
+				if($tag->[1]->{'name'} && $tag->[1]->{'name'} eq 'poster') {
+					$self->{'_big_cover_page'} = $tag->[1]->{'href'};
+					last;
+				}
+			}
+		}
+		if($self->{'_big_cover_page'}) {
+			my $page = $self->_get_page_from_internet('http://' . $self->{'host'} . $self->{'_big_cover_page'});
+			return unless $page;
+
+			my $parser = $self->_parser(FORCED, \$page);
+			while(my $tag = $parser->get_tag('img')) {
+				if($tag->[1]->{'id'} && $tag->[1]->{'id'} eq 'primary-img') {
+					$self->{'_big_cover_url'} = $tag->[1]->{'src'};
+					last;
+				}
+			}
+		}
+	}
+
+	return $self->{_big_cover_url};
 }
 
 =item official_sites()

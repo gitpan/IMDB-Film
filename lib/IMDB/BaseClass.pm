@@ -33,7 +33,7 @@ use constant ID_LENGTH	=> 6;
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.45';
+	$VERSION = '0.46';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -506,6 +506,10 @@ sub _search_results {
 		
 		$self->_show_message("TITLE: " . $title, 'DEBUG');
 		next if $title =~ /\[IMG\]/i or $href =~ /pro.imdb.com/;
+		
+		# Remove garbage from the first title
+		$title =~ s/(\n|\r)//g;
+		$title =~ s/\s*\.media_strip_thumbs.*//m;
 
 		if(my($id) = $href =~ /$pattern/) {
 			$matched_hash{$id} = {title => $title, 'pos' => $count++};

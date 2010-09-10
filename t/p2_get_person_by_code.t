@@ -6,7 +6,7 @@ my %person_info = (
 	code           => '0000129',
 	id	           => '0000129',
 	name           => qq{Tom Cruise},
-	mini_bio       => qq{In 1976, if you had told 14 year old Franciscan seminary student Thomas...},
+	mini_bio       => qq{If you had told 14 year old Franciscan seminary student Thomas Cruise...},
 	date_of_birth  => qq{3 July 1962},
 	place_of_birth => qq{Syracuse, New York, USA}, 
 );
