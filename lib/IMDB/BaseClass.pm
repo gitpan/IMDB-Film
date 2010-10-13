@@ -27,13 +27,13 @@ use Carp;
 
 use Data::Dumper;
 
-use constant MAIN_TAG	=> 'h5';
+use constant MAIN_TAG	=> 'h4';
 use constant ID_LENGTH	=> 6;
 
 use vars qw($VERSION %FIELDS $AUTOLOAD %STATUS_DESCR);
 
 BEGIN {
-	$VERSION = '0.46';
+	$VERSION = '0.47';
 
 	%STATUS_DESCR = (
 		0 => 'Empty',
@@ -473,12 +473,14 @@ sub _get_simple_prop {
 		my $text = $parser->get_text;
 
 		$self->_show_message("[$tag->[0]] $text --> $target", 'DEBUG');
-
 		last if $text =~ /$target/i;
 	}
 
-	my $end_tag = $target eq 'trivia' ? '/div' : '/a';
-
+	my $end_tag = '/a';
+	$end_tag = '/div' if $target eq 'trivia';
+	$end_tag = 'span' if $target eq 'Production Co';
+	$end_tag = '/div' if $target eq 'aspect ratio';
+	
 	my $res = $parser->get_trimmed_text($end_tag);	
 
 	$res =~ s/\s+(see )?more$//i;
