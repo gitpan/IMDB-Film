@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               IMDB-Film
-version:            0.47
+version:            0.48
 abstract:           OO Perl interface to the movies database IMDB.
 author:
     - Michael Stepanov <stepanov.michael@gmail.com>
