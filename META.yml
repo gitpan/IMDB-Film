@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               IMDB-Film
-version:            0.51
+version:            0.52
 abstract:           OO Perl interface to the movies database IMDB.
 author:
     - Michael Stepanov <stepanov.michael@gmail.com>
@@ -24,7 +24,7 @@ no_index:
     directory:
         - t
         - inc
-generated_by:       ExtUtils::MakeMaker version 6.56
+generated_by:       ExtUtils::MakeMaker version 6.57_05
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4
