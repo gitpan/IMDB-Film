@@ -23,3 +23,4 @@ t/p4_get_person_info_offline.t
 t/test.html
 t/test_p.html
 Todo
+META.json                                Module JSON meta-data (added by MakeMaker)
